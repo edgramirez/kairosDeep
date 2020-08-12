@@ -1,0 +1,12 @@
+DeepStream Python Bindings v0.9
+
+Install the package under DS 5.0 installation:
+tar xf ds_pybind_v0.9.tbz2 -C <DeepStream 5.0 ROOT>/sources
+
+This will create the following directory:
+<DeepStream 5.0 ROOT>/sources/python
+
+The Python apps and bindings are under the "python" directory.
+Follow README instructions to run the apps.
+
+md5sum 5b5263a7fdd73f92e48aef7cd75cab5d  ds_pybind_v0.9.tbz2
