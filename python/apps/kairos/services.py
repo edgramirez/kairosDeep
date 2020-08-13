@@ -407,11 +407,6 @@ def send_json(payload, action, url = None, **options):
             if retry == retries - 1:
                 raise Exception("Too many redirection in {} retries\n. Original exception".format(retry, str(e)))
 
-        #if r.status_code != expected_response:
-        #    time.sleep(sleep_time)
-        #    print('Not the expected return code {}, expecting {}'.format(r.status_code, expected_response))
-
-    # print(action, url, json.dumps(payload))
     return True
 
 

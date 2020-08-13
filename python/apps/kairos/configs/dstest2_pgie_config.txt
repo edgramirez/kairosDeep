@@ -65,7 +65,7 @@ proto-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector
 labelfile-path=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/labels.txt
 int8-calib-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/cal_trt.bin
 batch-size=1
-network-mode=1
+network-mode=2
 process-mode=1
 model-color-format=0
 num-detected-classes=4
@@ -73,7 +73,11 @@ interval=0
 gie-unique-id=1
 output-blob-names=conv2d_bbox;conv2d_cov/Sigmoid
 
+# 
+workspace-size=1024
+
 [class-attrs-all]
-threshold=0.2
+#threshold=0.2
+pre-cluster-threshold=0.2
 eps=0.2
 group-threshold=1
