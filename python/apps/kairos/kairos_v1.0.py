@@ -341,9 +341,9 @@ def main(args):
 
     # configuracion de modelo
     # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/dstest2_pgie_config.txt")
-    pgie.set_property('config-file-path', CURRENT_DIR + "configs/config_infer_primary_yoloV3.txt")
-    # pgie.set_property('config-file-path', CURRENT_DIR + "configs/config_infer_primary_yoloV3_tiny.txt")
-    # pgie.set_property('config-file-path', CURRENT_DIR + "configs/config_infer_primary_fasterRCNN.txt")
+    pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3.txt")
+    # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3_tiny.txt")
+    # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_fasterRCNN.txt")
     # Falta añadir la ruta completa del archivo de configuracion
     pgie_batch_size = pgie.get_property("batch-size")
 
