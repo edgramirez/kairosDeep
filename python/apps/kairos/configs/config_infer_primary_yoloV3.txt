@@ -62,12 +62,12 @@ gpu-id=0
 net-scale-factor=0.0039215697906911373
 #0=RGB, 1=BGR
 model-color-format=0
-custom-network-config=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/yolov3.cfg
-model-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/yolov3.weights
+custom-network-config=/opt/nvidia/deepstream/deepstream-5.0/sources/objectDetector_Yolo/yolov3.cfg
+model-file=/opt/nvidia/deepstream/deepstream-5.0/sources/objectDetector_Yolo/yolov3.weights
 #model-engine-file=yolov3_b1_gpu0_int8.engine
-labelfile-path=/opt/nvidia/deepstream/deepstream-5.0/sources/objectDetector_Yolo/labels_yolo.txt
+labelfile-path=/opt/nvidia/deepstream/deepstream-5.0/sources/objectDetector_Yolo/labels.txt
 #labelfile-path=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/labels_yolo.txt
-int8-calib-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/yolov3-calibration.table.trt7.0
+int8-calib-file=/opt/nvidia/deepstream/deepstream-5.0/sources/objectDetector_Yolo/yolov3-calibration.table.trt7.0
 ## 0=FP32, 1=INT8, 2=FP16 mode
 network-mode=1
 num-detected-classes=80
