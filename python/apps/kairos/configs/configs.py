@@ -56,7 +56,7 @@ config = {
             'counting_in_and_out': {
                 'enabled': True,
                 'outside_area': 1, # 1 defines A1 as outside, 2 defines A2 as outside area
-                'intersection_line': [(0, 250), (1920, 601)]
+                'intersection_line': [(0, 250), (1920, 601)],
                 },
             'social_distance': {
                 'enabled': False,
