@@ -155,9 +155,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         if len(boxes) > 0:
             service.tracked_on_time_social_distance(boxes, ids)
 
-        if not service.get_previous():
-            service.set_previous(True)
-            previous = service.get_previous()
+        if not previous:
+            previous = service.set_previous()
         
         display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
         display_meta.num_labels = 1
