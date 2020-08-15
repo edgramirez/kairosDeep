@@ -127,18 +127,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             try:
                 # Casting l_obj.data to pyds.NvDsObjectMeta
                 obj_meta = pyds.NvDsObjectMeta.cast(l_obj.data)         
-       #         if obj_meta.class_id != 2:
-       #             #print(" Class ID ", pgie_classes_str[obj_meta.class_id])
-       #             break
             except StopIteration:
                 break           
 
-                        
-            
-      #      else:
-      #          break  
-      
-            print(" Class ID ", pgie_classes_str[obj_meta.class_id])
+            # print(" Class ID ", pgie_classes_str[obj_meta.class_id])
 
             obj_counter[obj_meta.class_id] += 1
             x = obj_meta.rect_params.left
@@ -146,11 +138,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             obj_id = obj_meta.object_id
 
             # Service Aforo (in and out)
-            #if obj_meta.class_id == 2:
             ids.append(obj_id)
             boxes.append((x, y))
-            # service.counting_in_and_out_first_detection((x, y), obj_id) In and out counting when the object finally desapears
-            service.counting_in_and_out_when_changing_area((x, y), obj_id, ids, previous)
+            service.aforo((x, y), obj_id, ids, previous)
 
             # Service People counting
             if previous:
@@ -162,16 +152,13 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 break
 
         # Service Social Distance
-        if previous:
-            service.get_distances_between_detected_elements_from_centroid(boxes, ids)
+        if len(boxes) > 0:
+            service.tracked_on_time_social_distance(boxes, ids)
 
         if not service.get_previous():
             service.set_previous(True)
             previous = service.get_previous()
         
-        # Service Aforo (in and out)
-        # service.count_in_and_out_when_object_leaves_the_frame(ids) In and out counting when the object finally desapears
-
         display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
         display_meta.num_labels = 1
         py_nvosd_text_params = display_meta.text_params[0]

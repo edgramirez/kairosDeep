@@ -53,15 +53,15 @@ config = {
                 'enabled': False,
                 'frequency': 32,
                 },
-            'counting_in_and_out': {
+            'aforo': {
                 'enabled': True,
                 'outside_area': 1, # 1 defines A1 as outside, 2 defines A2 as outside area
-                'intersection_line': [(0, 250), (1920, 601)],
+                'aforo_reference_line_coordinates': [(0, 250), (1920, 601)],
                 },
             'social_distance': {
                 'enabled': False,
                 'tolerated_distance': 150,
-                'persistence_time': 3,
+                'persistence_time': 1,
                 'enabled_draw_line': False,
                 'enabled_draw_rectangle': False,
                 'line_width': 3,
