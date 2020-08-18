@@ -19,7 +19,7 @@ config = {
             'aforo': {
                 'enabled': True,
                 'outside_area': 1, # 1 defines A1 as outside, 2 defines A2 as outside area
-                'aforo_reference_line_coordinates': [(0, 250), (1920, 601)], # valores tevar [510, 740], [1050, 740]
+                'aforo_reference_line_coordinates': [(880,850), (880,250)], # (620, 840), (1200, 840)], # valores tevar [510, 740], [1050, 740]
                 },
             'social_distance': {
                 'enabled': False,
