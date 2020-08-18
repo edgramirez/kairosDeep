@@ -178,6 +178,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     previous = service.get_previous()
 
     
+    contador_salida = 0
+    contador_entrada = 0
     while l_frame is not None:
         try:
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)

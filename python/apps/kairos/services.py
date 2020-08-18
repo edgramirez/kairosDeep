@@ -79,7 +79,7 @@ def is_social_distance_enabled():
 
 
 def emulate_reading_from_server():
-    patterns = ["'people_counting': {'enable': True", "'aforo': {'enable': True", "'social_distance': {'enable': True"]
+    patterns = ["'people_counting': {'enabled': True", "'aforo': {'enabled': True", "'social_distance': {'enabled': True"]
     with open("configs/Server_Emulatation_configs.py") as fp:
         Lines = fp.readlines()
 
@@ -89,11 +89,11 @@ def emulate_reading_from_server():
         for line in Lines:
             for pattern in patterns:
                 if re.search(pattern, line.strip()):
-                    if pattern == "'people_counting': {'enable': True":
+                    if pattern == "'people_counting': {'enabled': True":
                         set_people_counting_service(True)
-                    elif pattern == "'aforo': {'enable': True":
+                    elif pattern == "'aforo': {'enabled': True":
                         set_aforo_service(True)
-                    elif pattern == "'social_distance': {'enable': True":
+                    elif pattern == "'social_distance': {'enabled': True":
                         set_social_distance_service(True)
 
         return people_counting_enabled, aforo_enabled, social_distance_enabled
