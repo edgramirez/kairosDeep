@@ -49,7 +49,7 @@ from ctypes import *
 import time
 import math
 import datetime
-
+import cv2
 
 
 #
@@ -183,6 +183,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         ids = []
         boxes = []
+
         while l_obj is not None: 
             try:
                 # Casting l_obj.data to pyds.NvDsObjectMeta
@@ -222,8 +223,54 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         
         display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
         display_meta.num_labels = 1
+        display_meta.num_lines = 1
+        display_meta.num_rects = 1
         py_nvosd_text_params = display_meta.text_params[0]
+        py_nvosd_line_params = display_meta.line_params[0]
+        py_nvosd_rect_params = display_meta.rect_params[0]
+
+        py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Vehicle_count={} Person_count={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_VEHICLE],obj_counter[PGIE_CLASS_ID_PERSON])
+        py_nvosd_text_params.x_offset = 100
+        py_nvosd_text_params.y_offset = 120
+        py_nvosd_text_params.font_params.font_name = "Arial"
+        py_nvosd_text_params.font_params.font_size = 10
+        py_nvosd_text_params.font_params.font_color.red = 1.0
+        py_nvosd_text_params.font_params.font_color.green = 1.0
+        py_nvosd_text_params.font_params.font_color.blue = 1.0
+        py_nvosd_text_params.font_params.font_color.alpha = 1.0
+        py_nvosd_text_params.set_bg_clr = 1
+        py_nvosd_text_params.text_bg_clr.red = 0.0
+        py_nvosd_text_params.text_bg_clr.green = 0.0
+        py_nvosd_text_params.text_bg_clr.blue = 0.0
+        py_nvosd_text_params.text_bg_clr.alpha = 1.0
         
+        #py_nvosd_line_params.x1 = 500
+        #py_nvosd_line_params.y1 = 800
+        #py_nvosd_line_params.x2 = 1200
+        #py_nvosd_line_params.y2 = 800
+        py_nvosd_line_params.x1 = 880
+        py_nvosd_line_params.y1 = 850
+        py_nvosd_line_params.x2 = 880
+        py_nvosd_line_params.y2 = 250
+        py_nvosd_line_params.line_width = 5
+        py_nvosd_line_params.line_color.red = 1.0
+        py_nvosd_line_params.line_color.green = 1.0
+        py_nvosd_line_params.line_color.blue = 1.0
+        py_nvosd_line_params.line_color.alpha = 1.0
+
+        py_nvosd_rect_params.left = 500
+        py_nvosd_rect_params.height = 120
+        py_nvosd_rect_params.top = 680
+        py_nvosd_rect_params.width = 560
+        py_nvosd_rect_params.border_width = 4
+        py_nvosd_rect_params.border_color.red = 0.0
+        py_nvosd_rect_params.border_color.green = 0.0
+        py_nvosd_rect_params.border_color.blue = 1.0
+        py_nvosd_rect_params.border_color.alpha = 1.0
+
+        # Lo manda a directo streaming
+        pyds.nvds_add_display_meta_to_frame(frame_meta,display_meta)
+
         fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()       
         try:
             l_frame = l_frame.next
@@ -298,14 +345,10 @@ def main(args):
     # Check input arguments
     # Permite introducir un numero x de fuentes, en nuestro caso streamings delas camaras Meraki        
     number_sources = len(args)-1    
-
     if number_sources+1 < 2:
         sys.stderr.write("usage: %s <uri1> [uri2] ... [uriN]\n" % args[0])
         sys.exit(1)
 
-    # Variable para verificar si al menos un video esta vivo
-    is_live = False
-    
     for i in range(0, number_sources):
         fps_streams["stream{0}".format(i)] = GETFPS(i)
         
@@ -324,6 +367,9 @@ def main(args):
     # Source element for reading from the file
     print("Creating Source \n ")
     
+    # Variable para verificar si al menos un video esta vivo
+    is_live = False
+
     # Create nvstreammux instance to form batches from one or more sources.
     
     streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
@@ -333,33 +379,22 @@ def main(args):
     
     # Se crea elemento que acepta todo tipo de video o RTSP
     for i in range(number_sources):
-
-        print("Creating source_bin...........", i, " \n ")
+        print("Creating source_bin ", i, " \n ")
         uri_name = args[i+1]
-        print("Creating source_bin...........", i, uri_name.find("rtsp://"), " \n ")
-
         if uri_name.find("rtsp://") == 0:
-            print('is_alive_TRUE')
             is_live = True
-
         source_bin = create_source_bin(i, uri_name)
-
         if not source_bin:
             sys.stderr.write("Unable to create source bin \n")
-
         pipeline.add(source_bin)
         padname = "sink_%u" % i
+        print("Padname : "+padname)
         sinkpad = streammux.get_request_pad(padname)
-
         if not sinkpad:
             sys.stderr.write("Unable to create sink pad bin \n")
-
-
         srcpad = source_bin.get_static_pad("src")
-
         if not srcpad:
             sys.stderr.write("Unable to create src pad bin \n")
-
         srcpad.link(sinkpad)
     
     # el video con RTSP para Meraki viene optimizado a H264, por lo que no debe ser necesario crear un elemento h264parser stream
@@ -525,12 +560,12 @@ def main(args):
     #source.link(h264parser)
     #h264parser.link(decoder)
 
-    sinkpad = streammux.get_request_pad("sink_0")
-    if not sinkpad:
-        sys.stderr.write(" Unable to get the sink pad of streammux \n")
-    srcpad = decoder.get_static_pad("src")
-    if not srcpad:
-        sys.stderr.write(" Unable to get source pad of decoder \n")
+    #sinkpad = streammux.get_request_pad("sink_0")
+    #if not sinkpad:
+    #    sys.stderr.write(" Unable to get the sink pad of streammux \n")
+    #srcpad = decoder.get_static_pad("src")
+    #if not srcpad:
+    #    sys.stderr.write(" Unable to get source pad of decoder \n")
 
     srcpad.link(sinkpad)    
     source_bin.link(decoder)
