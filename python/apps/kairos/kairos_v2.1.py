@@ -65,6 +65,10 @@ PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
 PGIE_CLASS_ID_ROADSIGN = 3
 
+PEOPLE_COUNTING_SERVICE = 0
+AFORO_ENT_SAL_SERVICE = 1
+SOCIAL_DISTANCE_SERVICE = 2
+
 #
 # Variables adicionales para el manejo de la funcionalidad de Tiler
 # independientemente como venga los parametros del video se ajusta 
@@ -79,7 +83,9 @@ TILED_OUTPUT_WIDTH = 1920
 TILED_OUTPUT_HEIGHT = 1080
 GST_CAPS_FEATURES_NVMM = "memory:NVMM"
 
-pgie_classes_str = ["Vehicle", "TwoWheeler", "Person", "RoadSign"]
+#pgie_classes_str = ["Vehicle", "TwoWheeler", "Person", "RoadSign"]
+servicios_habilitados = {}
+
 
 # directorio actual
 CURRENT_DIR = os.getcwd()
@@ -148,6 +154,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
 
+    
+    servicios_habilitados = service.emulate_reading_from_server()    
+    #print("Valor Aforo :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
+
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
             PGIE_CLASS_ID_PERSON: 0,
@@ -167,8 +177,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     l_frame = batch_meta.frame_meta_list
     previous = service.get_previous()
 
-
-    service.emulate_reading_from_server()
     
     while l_frame is not None:
         try:
@@ -177,17 +185,17 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             break
 
         # que hace esta funcion ????
-        if get_counter() == 60:
-            set_counter()
+        #if get_counter() == 60:
+        #    set_counter()
 
-            if get_current_time() > get_offset_time():
-                print('aca...............')
-                service.emulate_reading_from_server()
-                set_offset_time()
-            else:
-                set_current_time()
-        else:
-            increment()
+        #    if get_current_time() > get_offset_time():
+        #        print('aca...............')
+        #        service.emulate_reading_from_server()
+        #        set_offset_time()
+        #    else:
+        #        set_current_time()
+        #else:
+        #    increment()
 
         frame_number = frame_meta.frame_num
         l_obj = frame_meta.obj_meta_list
@@ -221,11 +229,14 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             # Service Aforo (in and out)
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
-            #service.aforo((x, y), obj_meta.object_id, ids, previous)
-            direction = service.aforo((x, y), obj_meta.object_id, ids, previous)
-            #print("Valor Aforo ",direction)
-            if direction:
-                print(direction)
+
+            #print(servicios_habilitados[AFORO_ENT_SAL_SERVICE])
+            if servicios_habilitados[AFORO_ENT_SAL_SERVICE]:
+                #print("Servicio de Aforo habilitado")
+                direction = service.aforo((x, y), obj_meta.object_id, ids, previous)
+                #print("Valor Direccion ",direction)
+                #if direction:
+                #    print(direction)
 
             # Service People counting
             #if previous:
@@ -662,7 +673,18 @@ def main(args):
     # Lets add probe to get informed of the meta data generated, we add probe to
     # the sink pad of the osd element, since by that time, the buffer would have
     # had got all the metadata.
-    
+
+    #servicios_habilitados = {
+    #    PEOPLE_COUNTING_SERVICE: False,
+    #    AFORO_ENT_SAL_SERVICE: False,
+    #    SOCIAL_DISTANCE_SERVICE: False   
+    #        }
+
+
+    #print("Valor Aforo Antes de leer del Servidor:", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
+    #servicios_habilitados = service.emulate_reading_from_server()
+    #print("Valor Aforo :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
+
     tiler_src_pad = tracker.get_static_pad("src")
     if not tiler_src_pad:
         sys.stderr.write(" Unable to get src pad \n")
