@@ -141,7 +141,6 @@ def get_aforo_reference_line_coordinates():
 
 
 def get_headers():
-    #token_handler = open_file(file_exists(os.getenv("HOME") + '/' + cfg['server']['token_file']), 'r+')
     token_handler = open_file(file_exists(cfg['server']['token_file']), 'r+')
     return {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
 
@@ -450,12 +449,6 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-global salida
-global entrada
-
-salida = 0
-entrada = 0
-
 def aforo(box, object_id, ids, previous):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
@@ -469,8 +462,7 @@ def aforo(box, object_id, ids, previous):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    print('aquiii', is_aforo_enabled())
-    direction = -1
+    direction = False
     if is_aforo_enabled():
         # returns True if object is in area A2
 
@@ -491,7 +483,6 @@ def aforo(box, object_id, ids, previous):
             elements_to_delete = set()
 
             for item in last.keys():
-                print('antes y despues', initial[item], last[item])
 
                 if initial[item] == 1 and last[item] == 2:
                     data = {
@@ -501,7 +492,7 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
-                    direction = direction_1_to_2
+                    direction = direction_1_to_2 + 1
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
                         elements_to_delete.add(item)
@@ -517,7 +508,7 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
-                    direction = direction_2_to_1
+                    direction = direction_2_to_1 + 1
 
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:

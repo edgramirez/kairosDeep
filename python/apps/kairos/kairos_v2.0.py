@@ -199,7 +199,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             # Service Aforo (in and out)
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
-            service.aforo((x, y), obj_meta.object_id, ids, previous)
+            direction = service.aforo((x, y), obj_meta.object_id, ids, previous)
+            if direction:
+                print(direction)
 
             # Service People counting
             if previous:
