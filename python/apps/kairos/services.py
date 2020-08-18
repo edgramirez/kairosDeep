@@ -463,7 +463,7 @@ def aforo(box, object_id, ids, previous):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    direction = False
+    direction = -1
     if is_aforo_enabled():
         # returns True if object is in area A2
 
