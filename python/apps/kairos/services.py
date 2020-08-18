@@ -92,6 +92,7 @@ def emulate_reading_from_server():
                     if pattern == "'people_counting': {":
                         set_people_counting_service(True)
                     elif pattern == "'aforo': {":
+                        print('aqui')
                         set_aforo_service(True)
                     elif pattern == "'social_distance': {":
                         set_social_distance_service(True)
@@ -140,7 +141,8 @@ def get_aforo_reference_line_coordinates():
 
 
 def get_headers():
-    token_handler = open_file(file_exists(os.getenv("HOME") + '/' + cfg['server']['token_file']), 'r+')
+    #token_handler = open_file(file_exists(os.getenv("HOME") + '/' + cfg['server']['token_file']), 'r+')
+    token_handler = open_file(file_exists(cfg['server']['token_file']), 'r+')
     return {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
 
 
@@ -324,6 +326,8 @@ def send_json(payload, action, url = None, **options):
     return True
 
 
+
+
 def count_in_and_out_when_object_leaves_the_frame(ids):
     '''
     The area A1 is the one closer to the point (0,0)
@@ -331,7 +335,6 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
     Area A2 is by default inside 
     ** This could be modified by setting up the configuration parameter "outside_area" to 2, (by default is 1)
     '''
-    #if cfg['services']['aforo']['enabled']:
     if is_aforo_enabled():
         elements_to_delete = set()
         camera_id = get_camera_mac_address()
@@ -352,6 +355,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
                             '#date-end': 1595907644469,
                             }
                     print('In sending_json........', item, direction_1_to_2)
+
                     x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url))
                     x.start()
                     #send_json(data, 'PUT', srv_url)
@@ -446,6 +450,12 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
+global salida
+global entrada
+
+salida = 0
+entrada = 0
+
 def aforo(box, object_id, ids, previous):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
@@ -459,7 +469,8 @@ def aforo(box, object_id, ids, previous):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    #if cfg['services']['aforo']['enabled']:
+    print('aquiii', is_aforo_enabled())
+    direction = -1
     if is_aforo_enabled():
         # returns True if object is in area A2
 
@@ -480,6 +491,8 @@ def aforo(box, object_id, ids, previous):
             elements_to_delete = set()
 
             for item in last.keys():
+                print('antes y despues', initial[item], last[item])
+
                 if initial[item] == 1 and last[item] == 2:
                     data = {
                             'direction': direction_1_to_2,
@@ -488,7 +501,7 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
-
+                    direction = direction_1_to_2
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
                         elements_to_delete.add(item)
@@ -504,6 +517,7 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
+                    direction = direction_2_to_1
 
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
@@ -515,6 +529,8 @@ def aforo(box, object_id, ids, previous):
             # deleting elements that are no longer present in the list of ids
             for item in elements_to_delete:
                 last.pop(item)
+
+    return direction 
 
 def tracked_on_time_social_distance(boxes, ids):
 
