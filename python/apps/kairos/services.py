@@ -493,7 +493,7 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
-                    direction = direction_1_to_2 + 1
+                    direction = direction_1_to_2
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
                         elements_to_delete.add(item)
@@ -509,7 +509,7 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
-                    direction = direction_2_to_1 + 1
+                    direction = direction_2_to_1
 
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
