@@ -48,6 +48,9 @@ from gi.repository import GLib
 from ctypes import *
 import time
 import math
+import datetime
+
+
 
 #
 #  version 2 solo detectara personas
@@ -83,6 +86,55 @@ CURRENT_DIR = os.getcwd()
 # Se utiliza en tiler
 fps_streams = {}
 
+global counter
+global current_time
+global offset_time
+
+
+def addSecs(tm, secs):
+    fulldate = datetime.datetime(100, 1, 1, tm.hour, tm.minute, tm.second)
+    fulldate = fulldate + datetime.timedelta(seconds=secs)
+    return fulldate.time()
+
+
+def set_counter():
+    global counter
+    counter = 0
+
+
+def get_counter():
+    global counter
+    return counter
+
+
+def increment():
+    global counter
+    counter += 1
+
+
+def set_current_time():
+    global current_time
+    current_time = datetime.datetime.now().time()
+
+
+def get_current_time():
+    global current_time
+    return current_time
+
+
+def set_offset_time():
+    global offset_time
+    offset_time = addSecs(get_current_time(), 60)
+
+
+def get_offset_time():
+    global offset_time
+    return offset_time
+
+
+set_counter()
+set_current_time()
+set_offset_time()
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
     # Intiallizing object counter with 0.
@@ -95,10 +147,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             PGIE_CLASS_ID_ROADSIGN: 0
             }
 
-    #obj_counter = {
-    #        PGIE_CLASS_ID_PERSON: 0
-    #        }
-
     frame_number = 0
     num_rects = 0
     gst_buffer = info.get_buffer()
@@ -110,14 +158,26 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     l_frame = batch_meta.frame_meta_list
     previous = service.get_previous()
+
     while l_frame is not None:
         try:
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
         except StopIteration:
             break
 
+        if get_counter() == 60:
+            set_counter()
+
+            if get_current_time() > get_offset_time():
+                print('aca...............')
+                service.emulate_reading_from_server()
+                set_offset_time()
+            else:
+                set_current_time()
+        else:
+            increment()
+
         frame_number = frame_meta.frame_num
-        service.set_frame_counter(frame_number)
         l_obj = frame_meta.obj_meta_list
         num_rects = frame_meta.num_obj_meta
 
@@ -135,17 +195,16 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             obj_counter[obj_meta.class_id] += 1
             x = obj_meta.rect_params.left
             y = obj_meta.rect_params.top
-            obj_id = obj_meta.object_id
 
             # Service Aforo (in and out)
-            ids.append(obj_id)
+            ids.append(obj_meta.object_id)
             boxes.append((x, y))
-            service.aforo((x, y), obj_id, ids, previous)
+            service.aforo((x, y), obj_meta.object_id, ids, previous)
 
             # Service People counting
             if previous:
                 service.people_counting_last_time_detected(ids)
-                service.people_counting_storing_fist_time(obj_id)
+                service.people_counting_storing_fist_time(obj_meta.object_id)
             try: 
                 l_obj = l_obj.next
             except StopIteration:
@@ -153,6 +212,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         # Service Social Distance
         if len(boxes) > 0:
+            service.set_frame_counter(frame_number)
             service.tracked_on_time_social_distance(boxes, ids)
 
         if not previous:
@@ -236,10 +296,14 @@ def main(args):
     # Check input arguments
     # Permite introducir un numero x de fuentes, en nuestro caso streamings delas camaras Meraki        
     number_sources = len(args)-1    
+
     if number_sources+1 < 2:
         sys.stderr.write("usage: %s <uri1> [uri2] ... [uriN]\n" % args[0])
         sys.exit(1)
 
+    # Variable para verificar si al menos un video esta vivo
+    is_live = False
+    
     for i in range(0, number_sources):
         fps_streams["stream{0}".format(i)] = GETFPS(i)
         
@@ -258,10 +322,6 @@ def main(args):
     # Source element for reading from the file
     print("Creating Source \n ")
     
-    # Variable para verificar si al menos un video esta vivo
-    is_live = False
-    
-    
     # Create nvstreammux instance to form batches from one or more sources.
     
     streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
@@ -271,21 +331,33 @@ def main(args):
     
     # Se crea elemento que acepta todo tipo de video o RTSP
     for i in range(number_sources):
-        print("Creating source_bin ", i, " \n ")
+
+        print("Creating source_bin...........", i, " \n ")
         uri_name = args[i+1]
+        print("Creating source_bin...........", i, uri_name.find("rtsp://"), " \n ")
+
         if uri_name.find("rtsp://") == 0:
+            print('is_alive_TRUE')
             is_live = True
+
         source_bin = create_source_bin(i, uri_name)
+
         if not source_bin:
             sys.stderr.write("Unable to create source bin \n")
+
         pipeline.add(source_bin)
         padname = "sink_%u" % i
         sinkpad = streammux.get_request_pad(padname)
+
         if not sinkpad:
             sys.stderr.write("Unable to create sink pad bin \n")
+
+
         srcpad = source_bin.get_static_pad("src")
+
         if not srcpad:
             sys.stderr.write("Unable to create src pad bin \n")
+
         srcpad.link(sinkpad)
     
     # el video con RTSP para Meraki viene optimizado a H264, por lo que no debe ser necesario crear un elemento h264parser stream
@@ -356,7 +428,6 @@ def main(args):
     if not sink:
         sys.stderr.write(" Unable to create egl sink \n")
         
-      
     if is_live:
         print("At least one of the sources is live")
         streammux.set_property('live-source', 1)
@@ -369,11 +440,11 @@ def main(args):
 
     #
     # Configuracion de modelo
-    # dstest2_pgie_config contiene modelo estandar, las delas son para yoloV3, yoloV3_tiny y fasterRCNN
+    # dstest2_pgie_config contiene modelo estandar, para  yoloV3, yoloV3_tiny y fasterRCNN
     #
 
     pgie.set_property('config-file-path', CURRENT_DIR + "/configs/dstest2_pgie_config.txt")
-    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3.txt")
+    # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3.txt")
     # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3_tiny.txt")
     # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_fasterRCNN.txt")
     # Falta añadir la ruta completa del archivo de configuracion

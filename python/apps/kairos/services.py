@@ -1,7 +1,8 @@
-import time
+import re
 import os
 import glob
 import json
+import time
 import requests
 import threading
 
@@ -28,11 +29,72 @@ global sd_keys
 global frame_count
 global distance_plus_factor
 global nfps
+global people_counting_enabled
+global aforo_enabled
+global social_distance_enabled
 
 previous = False
 first_time_set = set()
 last_time_set = set()
-distance_plus_factor = cfg['service']['social_distance']['tolerated_distance'] * 1.42  # raiz cuadrada de 2, maxima distancia de la suma de sus lados
+distance_plus_factor = cfg['services']['social_distance']['tolerated_distance'] * 1.42  # raiz cuadrada de 2, maxima distancia de la suma de sus lados
+
+
+def set_people_counting_service(value = False):
+    global people_counting_enabled
+    if value:
+        people_counting_enabled = True
+    else:
+        people_counting_enabled = False
+
+
+def is_people_counting_enabled():
+    global people_counting_enabled
+    return people_counting_enabled
+
+
+def set_aforo_service(value = False):
+    global aforo_enabled
+    if value:
+        aforo_enabled = True
+    else:
+        aforo_enabled = False
+
+
+def is_aforo_enabled():
+    global aforo_enabled
+    return aforo_enabled
+
+
+def set_social_distance_service(value = False):
+    global social_distance_enabled
+    if value:
+        social_distance_enabled = True
+    else:
+        social_distance_enabled = False
+
+
+def is_social_distance_enabled():
+    global social_distance_enabled
+    return social_distance_enabled
+
+
+def emulate_reading_from_server():
+    patterns = ["'people_counting': {", "'aforo': {", "'social_distance': {"]
+    with open("configs/Server_Emulatation_configs.py") as fp:
+        Lines = fp.readlines()
+
+        set_people_counting_service()
+        set_social_distance_service()
+        set_aforo_service()
+        for line in Lines:
+            for pattern in patterns:
+                if re.search(pattern, line.strip()):
+                    if pattern == "'people_counting': {":
+                        set_people_counting_service(True)
+                    elif pattern == "'aforo': {":
+                        set_aforo_service(True)
+                    elif pattern == "'social_distance': {":
+                        set_social_distance_service(True)
 
 
 def set_camera_mac_address(value = None):
@@ -53,7 +115,7 @@ def set_outside_area(value = None):
     global outside_area
 
     if value is None:
-        outside_area = cfg['service']['aforo']['outside_area']
+        outside_area = cfg['services']['aforo']['outside_area']
     else:
         outside_area = value
 
@@ -67,7 +129,7 @@ def set_aforo_reference_line_coordinates(value = None):
     global reference_line_coordinates
 
     if value is None:
-        reference_line_coordinates = cfg['service']['aforo']['aforo_reference_line_coordinates']
+        reference_line_coordinates = cfg['services']['aforo']['aforo_reference_line_coordinates']
     else:
         reference_line_coordinates = value
 
@@ -124,7 +186,7 @@ def get_previous():
 
 
 def get_supported_sd_keys():
-    return tuple(cfg['service']['social_distance'].keys())
+    return tuple(cfg['services']['social_distance'].keys())
 
 
 def set_frame_counter(value):
@@ -191,7 +253,7 @@ def get_timestamp():
 
 def get_social_distance_parameter_value(value = None):
     if value in get_supported_sd_keys():
-        return cfg['service']['social_distance'][value]
+        return cfg['services']['social_distance'][value]
 
 
 # Return true if line segments AB and CD intersect
@@ -269,7 +331,8 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
     Area A2 is by default inside 
     ** This could be modified by setting up the configuration parameter "outside_area" to 2, (by default is 1)
     '''
-    if cfg['service']['aforo']['enabled']:
+    #if cfg['services']['aforo']['enabled']:
+    if is_aforo_enabled():
         elements_to_delete = set()
         camera_id = get_camera_mac_address()
         direction_1_to_2 = get_outside_area() % 2
@@ -319,7 +382,8 @@ def people_counting_storing_fist_time(object_id):
 
     srv_url = get_service_people_counting_url()
 
-    if cfg['service']['people_counting']['enabled'] and object_id not in first_time_set:
+    #if cfg['services']['people_counting']['enabled'] and object_id not in first_time_set:
+    if is_people_counting_enabled() and object_id not in first_time_set:
         data = {
                 'camera_id': get_camera_mac_address(),
                 'date_time': get_timestamp(),
@@ -338,7 +402,8 @@ def people_counting_last_time_detected(ids):
     srv_url = get_service_people_counting_url()
     camera_id = get_camera_mac_address()
 
-    if cfg['service']['people_counting']['enabled'] and first_time_set:
+    #if cfg['services']['people_counting']['enabled'] and first_time_set:
+    if is_people_counting_enabled() and first_time_set:
         ids_set = set(ids)
         for item in first_time_set.difference(ids_set):
             if item not in last_time_set:
@@ -364,7 +429,8 @@ def counting_in_and_out_first_detection(box, object_id):
     x = box[0]
     y = box[1]
     '''
-    if not cfg['service']['aforo']['enabled']:
+    #if not cfg['services']['aforo']['enabled']:
+    if not is_aforo_enabled():
         return
 
     # returns True if object is in area A2
@@ -393,7 +459,8 @@ def aforo(box, object_id, ids, previous):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    if cfg['service']['aforo']['enabled']:
+    #if cfg['services']['aforo']['enabled']:
+    if is_aforo_enabled():
         # returns True if object is in area A2
 
         if check_if_object_is_in_area2(box):
@@ -449,16 +516,17 @@ def aforo(box, object_id, ids, previous):
             for item in elements_to_delete:
                 last.pop(item)
 
-
 def tracked_on_time_social_distance(boxes, ids):
 
-    if not cfg['service']['social_distance']['enabled']:
+    #if not cfg['services']['social_distance']['enabled']:
+    if not is_social_distance_enabled():
         return
 
     # if we just detected 1 element, there is no need to calculate distances
     length = len(boxes)
     if length > 1:
         global dict_of_ids, distance_plus_factor, nfps
+
         frame_count = get_frame_counter()
         camera_id = get_camera_mac_address()
         srv_url = get_service_social_distance_url()
@@ -605,13 +673,16 @@ def id_colors():
     return np.random.randint(0, 255, size=(10000, 3), dtype="uint8")
 
 
+emulate_reading_from_server()
+
+
 set_camera_mac_address()
 set_outside_area()
 set_aforo_reference_line_coordinates()
 set_server_url()
 header = get_headers()
 nfps = get_number_of_frames_per_second()
-risk_value = nfps * cfg['service']['social_distance']['persistence_time']
+risk_value = nfps * cfg['services']['social_distance']['persistence_time']
 
 dict_of_ids = {}
 initial = {}

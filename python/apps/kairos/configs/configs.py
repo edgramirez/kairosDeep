@@ -11,7 +11,7 @@ config = {
             'token_file': '.token',
             },
 
-        'service': {
+        'services': {
             'people_counting': {
                 'enabled': False,
                 'frequency': 32,
@@ -29,7 +29,6 @@ config = {
                 'enabled_draw_rectangle': False,
                 'line_width': 3,
                 'line_color': (50, 120 ,255),
-                },
-            },
+                },},
 
         }
