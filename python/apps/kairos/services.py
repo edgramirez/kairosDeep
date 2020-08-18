@@ -79,7 +79,7 @@ def is_social_distance_enabled():
 
 
 def emulate_reading_from_server():
-    patterns = ["'people_counting': {", "'aforo': {", "'social_distance': {"]
+    patterns = ["'people_counting': {'enable': True", "'aforo': {'enable': True", "'social_distance': {'enable': True"]
     with open("configs/Server_Emulatation_configs.py") as fp:
         Lines = fp.readlines()
 
@@ -89,13 +89,14 @@ def emulate_reading_from_server():
         for line in Lines:
             for pattern in patterns:
                 if re.search(pattern, line.strip()):
-                    if pattern == "'people_counting': {":
+                    if pattern == "'people_counting': {'enable': True":
                         set_people_counting_service(True)
-                    elif pattern == "'aforo': {":
-                        print('aqui')
+                    elif pattern == "'aforo': {'enable': True":
                         set_aforo_service(True)
-                    elif pattern == "'social_distance': {":
+                    elif pattern == "'social_distance': {'enable': True":
                         set_social_distance_service(True)
+
+        return people_counting_enabled, aforo_enabled, social_distance_enabled
 
 
 def set_camera_mac_address(value = None):
