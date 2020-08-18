@@ -156,7 +156,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     
     servicios_habilitados = service.emulate_reading_from_server()    
-    #print("Valor Aforo :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
+    print("Valor Aforo :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
 
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
@@ -235,8 +235,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 #print("Servicio de Aforo habilitado")
                 direction = service.aforo((x, y), obj_meta.object_id, ids, previous)
                 #print("Valor Direccion ",direction)
-                #if direction:
-                #    print(direction)
+                if direction == 1: 
+                    contador_entrada += 1
+                    print("Entrada", contador_entrada)
+                elif direction == 0:
+                    print("Salida", contador_salida)
+                    contador_salida += 1
 
             # Service People counting
             #if previous:
@@ -275,7 +279,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         py_nvosd_rect_params = display_meta.rect_params[0]        
         
         #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Vehicle_count={} Person_count={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_VEHICLE],obj_counter[PGIE_CLASS_ID_PERSON])
-        py_nvosd_text_params.display_text = "Source ID={} Source Number={} Person_count={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
+        py_nvosd_text_params.display_text = "Source ID={} Source Number={} Person_count={} Entradas=={} Salidas=={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], contador_entrada, contador_salida)
 
         # Setup del label de impresion en pantalla
         py_nvosd_text_params.x_offset = 100
