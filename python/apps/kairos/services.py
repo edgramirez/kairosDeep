@@ -33,6 +33,11 @@ global people_counting_enabled
 global aforo_enabled
 global social_distance_enabled
 
+global salidas
+global entradas
+salidas = 0
+entradas = 0
+
 previous = False
 first_time_set = set()
 last_time_set = set()
@@ -463,6 +468,7 @@ def aforo(box, object_id, ids, previous):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
+    global entradas, salidas
     direction = -1
     if is_aforo_enabled():
         # returns True if object is in area A2
@@ -484,7 +490,6 @@ def aforo(box, object_id, ids, previous):
             elements_to_delete = set()
 
             for item in last.keys():
-
                 if initial[item] == 1 and last[item] == 2:
                     data = {
                             'direction': direction_1_to_2,
@@ -493,7 +498,8 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
-                    direction = direction_1_to_2
+                    salidas += 1
+                    #direction = direction_1_to_2
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
                         elements_to_delete.add(item)
@@ -509,7 +515,8 @@ def aforo(box, object_id, ids, previous):
                             '#date-end': 1595907644469,
                             }
                     print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
-                    direction = direction_2_to_1
+                    entradas += 1
+                    #direction = direction_2_to_1
 
                     # deleting elements that are no longer present in the list of ids
                     if item not in ids:
@@ -522,7 +529,7 @@ def aforo(box, object_id, ids, previous):
             for item in elements_to_delete:
                 last.pop(item)
 
-    return direction 
+    return entradas, salidas
 
 def tracked_on_time_social_distance(boxes, ids):
 
