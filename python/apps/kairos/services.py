@@ -340,47 +340,47 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
     Area A2 is by default inside 
     ** This could be modified by setting up the configuration parameter "outside_area" to 2, (by default is 1)
     '''
-    if is_aforo_enabled():
-        elements_to_delete = set()
-        camera_id = get_camera_mac_address()
-        direction_1_to_2 = get_outside_area() % 2
-        direction_2_to_1 = (get_outside_area() + 1) % 2
-        srv_url = get_service_count_in_and_out_url()
+    #if is_aforo_enabled():
+    elements_to_delete = set()
+    camera_id = get_camera_mac_address()
+    direction_1_to_2 = get_outside_area() % 2
+    direction_2_to_1 = (get_outside_area() + 1) % 2
+    srv_url = get_service_count_in_and_out_url()
 
-        for item in last.keys():
-            if item not in ids:
-                #print('id', item, 'is not int:', ids)
-                if initial[item] == 1 and last[item] == 2:
-                    # value #date-end is not needed, just for compatibility we hardcode this value
-                    # 'id': str(item),
-                    data = {
-                            'direction': direction_1_to_2,
-                            'camera-id': camera_id,
-                            '#date-start': get_timestamp(),
-                            '#date-end': 1595907644469,
-                            }
-                    print('In sending_json........', item, direction_1_to_2)
+    for item in last.keys():
+        if item not in ids:
+            #print('id', item, 'is not int:', ids)
+            if initial[item] == 1 and last[item] == 2:
+                # value #date-end is not needed, just for compatibility we hardcode this value
+                # 'id': str(item),
+                data = {
+                        'direction': direction_1_to_2,
+                        'camera-id': camera_id,
+                        '#date-start': get_timestamp(),
+                        '#date-end': 1595907644469,
+                        }
+                print('In sending_json........', item, direction_1_to_2)
 
-                    x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url))
-                    x.start()
-                    #send_json(data, 'PUT', srv_url)
-                elif initial[item] == 2 and last[item] == 1:
-                    #        'id': str(item),
-                    data = {
-                            'direction': direction_2_to_1,
-                            'camera-id': camera_id,
-                            '#date-start': get_timestamp(),
-                            '#date-end': 1595907644469,
-                            }
-                    print('Out sending_json........', item, direction_2_to_1)
-                    x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
-                    x.start()
-                    #send_json(data, 'PUT', srv_url)
-                initial.pop(item)
-                elements_to_delete.add(item)
+                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url))
+                x.start()
+                #send_json(data, 'PUT', srv_url)
+            elif initial[item] == 2 and last[item] == 1:
+                #        'id': str(item),
+                data = {
+                        'direction': direction_2_to_1,
+                        'camera-id': camera_id,
+                        '#date-start': get_timestamp(),
+                        '#date-end': 1595907644469,
+                        }
+                print('Out sending_json........', item, direction_2_to_1)
+                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                x.start()
+                #send_json(data, 'PUT', srv_url)
+            initial.pop(item)
+            elements_to_delete.add(item)
 
-        for item in elements_to_delete:
-            last.pop(item)
+    for item in elements_to_delete:
+        last.pop(item)
 
 
 def people_counting_storing_fist_time(object_id):
@@ -392,7 +392,8 @@ def people_counting_storing_fist_time(object_id):
     srv_url = get_service_people_counting_url()
 
     #if cfg['services']['people_counting']['enabled'] and object_id not in first_time_set:
-    if is_people_counting_enabled() and object_id not in first_time_set:
+    # if is_people_counting_enabled() and object_id not in first_time_set:
+    if object_id not in first_time_set:
         data = {
                 'camera_id': get_camera_mac_address(),
                 'date_time': get_timestamp(),
@@ -412,7 +413,8 @@ def people_counting_last_time_detected(ids):
     camera_id = get_camera_mac_address()
 
     #if cfg['services']['people_counting']['enabled'] and first_time_set:
-    if is_people_counting_enabled() and first_time_set:
+    # if is_people_counting_enabled() and first_time_set:
+    if first_time_set:
         ids_set = set(ids)
         for item in first_time_set.difference(ids_set):
             if item not in last_time_set:
@@ -439,9 +441,8 @@ def counting_in_and_out_first_detection(box, object_id):
     y = box[1]
     '''
     #if not cfg['services']['aforo']['enabled']:
-    if not is_aforo_enabled():
-        return
-
+    #if not is_aforo_enabled():
+    #    return
     # returns True if object is in area A2
     if check_if_object_is_in_area2(box):
         if object_id not in initial:
@@ -469,213 +470,213 @@ def aforo(box, object_id, ids, previous):
     If the ID has not previously been register the function just store the current values
     '''
     global entradas, salidas
-    direction = -1
-    if is_aforo_enabled():
-        # returns True if object is in area A2
+    #    direction = -1
+    #if is_aforo_enabled():
+    # returns True if object is in area A2
 
-        if check_if_object_is_in_area2(box):
-            area = 2
-        else:
-            area = 1
+    if check_if_object_is_in_area2(box):
+        area = 2
+    else:
+        area = 1
 
-        if object_id not in initial:
-            initial.update({object_id: area})
-        else:
-            last.update({object_id: area})
+    if object_id not in initial:
+        initial.update({object_id: area})
+    else:
+        last.update({object_id: area})
 
-        if previous:
-            camera_id = get_camera_mac_address()
-            direction_1_to_2 = (get_outside_area() + 1) % 2
-            direction_2_to_1 = get_outside_area() % 2
-            elements_to_delete = set()
+    if previous:
+        camera_id = get_camera_mac_address()
+        direction_1_to_2 = (get_outside_area() + 1) % 2
+        direction_2_to_1 = get_outside_area() % 2
+        elements_to_delete = set()
 
-            for item in last.keys():
-                if initial[item] == 1 and last[item] == 2:
-                    data = {
-                            'direction': direction_1_to_2,
-                            'camera-id': camera_id,
-                            '#date-start': get_timestamp(),
-                            '#date-end': 1595907644469,
-                            }
-                    print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
-                    salidas += 1
-                    #direction = direction_1_to_2
-                    # deleting elements that are no longer present in the list of ids
-                    if item not in ids:
-                        elements_to_delete.add(item)
-                        initial.pop(item)
-                    else:
-                        initial.update({item: 2})
+        for item in last.keys():
+            if initial[item] == 1 and last[item] == 2:
+                data = {
+                        'direction': direction_1_to_2,
+                        'camera-id': camera_id,
+                        '#date-start': get_timestamp(),
+                        '#date-end': 1595907644469,
+                        }
+                print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
+                salidas += 1
+                #direction = direction_1_to_2
+                # deleting elements that are no longer present in the list of ids
+                if item not in ids:
+                    elements_to_delete.add(item)
+                    initial.pop(item)
+                else:
+                    initial.update({item: 2})
 
-                elif initial[item] == 2 and last[item] == 1:
-                    data = {
-                            'direction': direction_2_to_1,
-                            'camera-id': camera_id,
-                            '#date-start': get_timestamp(),
-                            '#date-end': 1595907644469,
-                            }
-                    print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
-                    entradas += 1
-                    #direction = direction_2_to_1
+            elif initial[item] == 2 and last[item] == 1:
+                data = {
+                        'direction': direction_2_to_1,
+                        'camera-id': camera_id,
+                        '#date-start': get_timestamp(),
+                        '#date-end': 1595907644469,
+                        }
+                print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
+                entradas += 1
+                #direction = direction_2_to_1
 
-                    # deleting elements that are no longer present in the list of ids
-                    if item not in ids:
-                        elements_to_delete.add(item)
-                        initial.pop(item)
-                    else:
-                        initial.update({item: 1})
+                # deleting elements that are no longer present in the list of ids
+                if item not in ids:
+                    elements_to_delete.add(item)
+                    initial.pop(item)
+                else:
+                    initial.update({item: 1})
 
-            # deleting elements that are no longer present in the list of ids
-            for item in elements_to_delete:
-                last.pop(item)
+        # deleting elements that are no longer present in the list of ids
+        for item in elements_to_delete:
+            last.pop(item)
 
     return entradas, salidas
 
-def tracked_on_time_social_distance(boxes, ids):
+def tracked_on_time_social_distance(boxes, ids, boxes_length):
 
     #if not cfg['services']['social_distance']['enabled']:
-    if not is_social_distance_enabled():
-        return
+    #if not is_social_distance_enabled():
+    #    return
 
     # if we just detected 1 element, there is no need to calculate distances
-    length = len(boxes)
-    if length > 1:
-        global dict_of_ids, distance_plus_factor, nfps
+    #length = len(boxes)
+    #if length > 1:
+    global dict_of_ids, distance_plus_factor, nfps
 
-        frame_count = get_frame_counter()
-        camera_id = get_camera_mac_address()
-        srv_url = get_service_social_distance_url()
+    frame_count = get_frame_counter()
+    camera_id = get_camera_mac_address()
+    srv_url = get_service_social_distance_url()
 
-        # if dictionary has no elements, there is no need to check anything
-        if len(dict_of_ids) > 0:
-            # get the subset of ids that desapear: the ones that are in the current detected ids but no in the dictionary list
-            ids_in_dict_not_in_ids = set(dict_of_ids.keys()) - set(ids)
-            dict_of_ids_subset = {key_: value for key_, value in dict_of_ids.items() if key_ in ids_in_dict_not_in_ids}
+    # if dictionary has no elements, there is no need to check anything
+    if len(dict_of_ids) > 0:
+        # get the subset of ids that desapear: the ones that are in the current detected ids but no in the dictionary list
+        ids_in_dict_not_in_ids = set(dict_of_ids.keys()) - set(ids)
+        dict_of_ids_subset = {key_: value for key_, value in dict_of_ids.items() if key_ in ids_in_dict_not_in_ids}
 
-            for key in dict_of_ids_subset:
-                if dict_of_ids_subset[key]['consecutive_absence'] == nfps:
-                    for inner_id in dict_of_ids_subset[key]['inner_ids']:
-                        if dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['reported_in_frame'] and (dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['visible'] / risk_value) > 1: 
-                            alert_id = dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['alert_id']
-                            data = {
-                                    'camera-id': camera_id,
+        for key in dict_of_ids_subset:
+            if dict_of_ids_subset[key]['consecutive_absence'] == nfps:
+                for inner_id in dict_of_ids_subset[key]['inner_ids']:
+                    if dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['reported_in_frame'] and (dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['visible'] / risk_value) > 1: 
+                        alert_id = dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['alert_id']
+                        data = {
+                                'camera-id': camera_id,
+                                'date_time': get_timestamp(),
+                                'id_pivot': key,
+                                'related_id': inner_id,
+                                'alert_id': alert_id,
+                                }
+                        print(data, 'PUT', srv_url)
+                        x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                        x.start()
+                        #send_json(data, 'PUT', srv_url)
+
+                # Now delete the id cause is no longer in sight
+                dict_of_ids.pop(key)
+            else:
+                if dict_of_ids_subset[key]['reported_in_frame'] and (dict_of_ids_subset[key]['reported_in_frame'] + 1 == frame_count):
+                    dict_of_ids_subset[key]['consecutive_absence'] += 1
+                else:
+                    dict_of_ids_subset[key]['consecutive_absence'] = 1
+    '''
+    take un element and compares it with the ones in front of it, to avoid repetition of convinations
+    (A, B, C, D)
+       AB AC AD
+          BC CD
+    '''
+    i = 1
+    for box in boxes:
+        # add element if not exist on the dictonary
+        if str(ids[i-1]) in dict_of_ids.keys():
+            dict_of_ids[str(ids[i-1])]['visible'] += 1
+        else:
+            dict_of_ids.update(
+                        {
+                        str(ids[i-1]): {
+                            'visible': 1, 
+                            'consecutive_absence': 0, 
+                            'inner_ids': {},
+                            'reported_in_frame': False,
+                            }
+                        }
+                    )
+
+        j = 0
+        for inner_box in boxes[i:]:
+            '''
+            distance_per_factor = tolerated_distance * sqt(2)
+            If the addition of the sides of a triangle is greater thant the "distance_per_factor" that element is far from the radio or hipotenous
+            and so is not close enough to break the rule
+            In the contrary we check if lower and then make a full analysis of the distances
+            '''
+            if distance_plus_factor > (abs(box[0] - inner_box[0]) + abs(box[1] - inner_box[1])): 
+                x2 = inner_box[0]
+                y2 = inner_box[1]
+                #w2 = inner_box[2]
+                #h2 = inner_box[3]
+
+                x1 = box[0]
+                y1 = box[1]
+                #w1 = box[2]
+                #h1 = box[3]
+
+                distance = sqrt( ((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1)) )
+
+                # if distance is lower than the tolerated value we add the ID and treat it   
+                if distance < get_social_distance_parameter_value('tolerated_distance'):
+
+                    # before use the inner dictionary, check if there are ids we need to delete, so that we loop with less elements
+                    if len(dict_of_ids) > 0:
+                        ids_in_dict_not_in_ids = set(dict_of_ids.keys()) - set(ids)
+                        dict_of_ids_subset = {key_: value for key_, value in dict_of_ids[str(ids[i-1])]['inner_ids'].items() if key_ in ids_in_dict_not_in_ids}
+                        for inner_subset_keys in dict_of_ids_subset:
+                            if dict_of_ids_subset[inner_subset_keys]['consecutive_absence'] == nfps:
+                                dict_of_ids[str(ids[i-1])]['inner_ids'].pop(inner_subset_keys)
+                                dict_of_ids_subset.pop(inner_subset_keys)
+                            else:
+                                if dict_of_ids_subset[inner_subset_keys]['reported_in_frame'] and (dict_of_ids_subset[inner_subset_keys]['reported_in_frame'] + 1) == frame_count:
+                                    dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['consecutive_absence'] += 1
+                                    dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['reported_in_frame'] = frame_count
+                                else:
+                                    dict_of_ids[str(ids[i-1])]['inner_ids'][inner_subset_keys]['consecutive_absence'] = 1
+
+                    if str(ids[i+j]) in dict_of_ids[str(ids[i-1])]['inner_ids'].keys():
+                        dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['visible'] += 1
+
+                        # report social distance alarm if inner_id has been visibled n times = to risk_value and no previous alert
+                        if dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['visible'] >= risk_value:
+                            if not dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['alert_id']:
+                                alert_id = str(int((datetime.now() - datetime(1970,1,1)).total_seconds())) + '_' + str(ids[i-1]) + '_' + str(ids[i+j])
+                                dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])].update({'alert_id': alert_id})
+
+                                data = {
+                                    'camera_id': camera_id,
                                     'date_time': get_timestamp(),
-                                    'id_pivot': key,
-                                    'related_id': inner_id,
+                                    'distance': distance,
+                                    'id_pivot': ids[i-1],
+                                    'related_id': ids[i+j],
                                     'alert_id': alert_id,
                                     }
-                            print(data, 'PUT', srv_url)
-                            x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
-                            x.start()
-                            #send_json(data, 'PUT', srv_url)
-
-                    # Now delete the id cause is no longer in sight
-                    dict_of_ids.pop(key)
-                else:
-                    if dict_of_ids_subset[key]['reported_in_frame'] and (dict_of_ids_subset[key]['reported_in_frame'] + 1 == frame_count):
-                        dict_of_ids_subset[key]['consecutive_absence'] += 1
+                                print(data, 'POST', srv_url)
+                                x = threading.Thread(target=send_json, args=(data, 'POST', srv_url,))
+                                x.start()
+                                #send_json(data, 'POST', srv_url)
                     else:
-                        dict_of_ids_subset[key]['consecutive_absence'] = 1
-        '''
-        take un element and compares it with the ones in front of it, to avoid repetition of convinations
-        (A, B, C, D)
-           AB AC AD
-              BC CD
-        '''
-        i = 1
-        for box in boxes:
-            # add element if not exist on the dictonary
-            if str(ids[i-1]) in dict_of_ids.keys():
-                dict_of_ids[str(ids[i-1])]['visible'] += 1
-            else:
-                dict_of_ids.update(
-                            {
-                            str(ids[i-1]): {
-                                'visible': 1, 
-                                'consecutive_absence': 0, 
-                                'inner_ids': {},
-                                'reported_in_frame': False,
-                                }
-                            }
-                        )
-
-            j = 0
-            for inner_box in boxes[i:]:
-                '''
-                distance_per_factor = tolerated_distance * sqt(2)
-                If the addition of the sides of a triangle is greater thant the "distance_per_factor" that element is far from the radio or hipotenous
-                and so is not close enough to break the rule
-                In the contrary we check if lower and then make a full analysis of the distances
-                '''
-                if distance_plus_factor > (abs(box[0] - inner_box[0]) + abs(box[1] - inner_box[1])): 
-                    x2 = inner_box[0]
-                    y2 = inner_box[1]
-                    #w2 = inner_box[2]
-                    #h2 = inner_box[3]
-
-                    x1 = box[0]
-                    y1 = box[1]
-                    #w1 = box[2]
-                    #h1 = box[3]
-
-                    distance = sqrt( ((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1)) )
-
-                    # if distance is lower than the tolerated value we add the ID and treat it   
-                    if distance < get_social_distance_parameter_value('tolerated_distance'):
-
-                        # before use the inner dictionary, check if there are ids we need to delete, so that we loop with less elements
-                        if len(dict_of_ids) > 0:
-                            ids_in_dict_not_in_ids = set(dict_of_ids.keys()) - set(ids)
-                            dict_of_ids_subset = {key_: value for key_, value in dict_of_ids[str(ids[i-1])]['inner_ids'].items() if key_ in ids_in_dict_not_in_ids}
-                            for inner_subset_keys in dict_of_ids_subset:
-                                if dict_of_ids_subset[inner_subset_keys]['consecutive_absence'] == nfps:
-                                    dict_of_ids[str(ids[i-1])]['inner_ids'].pop(inner_subset_keys)
-                                    dict_of_ids_subset.pop(inner_subset_keys)
-                                else:
-                                    if dict_of_ids_subset[inner_subset_keys]['reported_in_frame'] and (dict_of_ids_subset[inner_subset_keys]['reported_in_frame'] + 1) == frame_count:
-                                        dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['consecutive_absence'] += 1
-                                        dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['reported_in_frame'] = frame_count
-                                    else:
-                                        dict_of_ids[str(ids[i-1])]['inner_ids'][inner_subset_keys]['consecutive_absence'] = 1
-
-                        if str(ids[i+j]) in dict_of_ids[str(ids[i-1])]['inner_ids'].keys():
-                            dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['visible'] += 1
-
-                            # report social distance alarm if inner_id has been visibled n times = to risk_value and no previous alert
-                            if dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['visible'] >= risk_value:
-                                if not dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])]['alert_id']:
-                                    alert_id = str(int((datetime.now() - datetime(1970,1,1)).total_seconds())) + '_' + str(ids[i-1]) + '_' + str(ids[i+j])
-                                    dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])].update({'alert_id': alert_id})
-
-                                    data = {
-                                        'camera_id': camera_id,
-                                        'date_time': get_timestamp(),
-                                        'distance': distance,
-                                        'id_pivot': ids[i-1],
-                                        'related_id': ids[i+j],
-                                        'alert_id': alert_id,
-                                        }
-                                    print(data, 'POST', srv_url)
-                                    x = threading.Thread(target=send_json, args=(data, 'POST', srv_url,))
-                                    x.start()
-                                    #send_json(data, 'POST', srv_url)
-                        else:
-                            # add element if not exist on the dictonary
-                            dict_of_ids[str(ids[i-1])]['inner_ids'].update(
-                                    {
-                                    str(ids[i+j]): {
-                                        'visible': 1,
-                                        'consecutive_absence': 0,
-                                        'reported_in_frame': False,
-                                        'alert_id': False,
-                                        }
+                        # add element if not exist on the dictonary
+                        dict_of_ids[str(ids[i-1])]['inner_ids'].update(
+                                {
+                                str(ids[i+j]): {
+                                    'visible': 1,
+                                    'consecutive_absence': 0,
+                                    'reported_in_frame': False,
+                                    'alert_id': False,
                                     }
-                                )
-                j += 1
+                                }
+                            )
+            j += 1
 
-            if i == (length - 2):
-                break
-            i += 1
+        if i == (boxes_length - 2):
+            break
+        i += 1
 
 
 def validate_camera_mac_address(camera_ip):
