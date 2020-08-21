@@ -155,6 +155,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
 
+    entrada = 0
+    salida = 0
 
     servicios_habilitados = service.emulate_reading_from_server()    
     #print("Valores Servicios :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
@@ -329,7 +331,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 service.set_frame_counter(frame_number)
                 service.tracked_on_time_social_distance(boxes, ids, boxes_length)
 
-        if not previous:
+        if not previous and servicios_habilitados[AFORO_ENT_SAL_SERVICE] and frame_meta.pad_index % 2 == 0:
             previous = service.set_previous()
 
         # Impresion en el video de los valores que nos interesan
