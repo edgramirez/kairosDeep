@@ -13,7 +13,7 @@ config = {
 
         'services': {
             # 1 defines A1 as outside, 2 defines A2 as outside area 
-            'aforo': {'enabled': True,'outside_area': 1, 'aforo_reference_line_coordinates': [(510, 740), (1050, 740)]},
+            'aforo': {'enabled': True,'outside_area': 2, 'aforo_reference_line_coordinates': [(510, 740), (1100, 740)]},
             'people_counting': {'enabled': False,'frequency': 32},
             'social_distance': {'enabled': True,'tolerated_distance': 150,'persistence_time': 1,'enabled_draw_line': False,'enabled_draw_rectangle': False,'line_width': 3,'line_color': (50, 120 ,255)}},
         }
