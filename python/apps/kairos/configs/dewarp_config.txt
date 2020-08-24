@@ -1,0 +1,16 @@
+#
+#
+# Configuration File for dewarp
+#
+#
+
+[property]
+aisle-calibration-file=csv_files/nvaisle_2M.csv
+
+[surface0]
+projection-type=1
+surface-index=0
+output-width=960
+output-height=720
+distorsion=0.3721
+

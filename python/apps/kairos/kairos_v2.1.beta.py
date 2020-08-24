@@ -187,7 +187,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     l_frame = batch_meta.frame_meta_list
-    previous = service.get_previous()
+    
+    if servicios_habilitados[AFORO_ENT_SAL_SERVICE] and ( pyds.NvDsFrameMeta.cast(l_frame.data).pad_index % 2 == 0  ):
+        previous = service.get_previous()
 
     '''
     #====================== Definicion de valores de mensajes a pantalla
@@ -280,8 +282,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         # este valor debe usarse para identificar que servicio se debe ejecutar en el ciclo interno
         # 
     
-        # Estos arreglos se definen solo para AFORO
-
+        # Estos arreglos se usan y definen solo para AFORO
         ids = []
         boxes = []
 
@@ -591,9 +592,6 @@ def main(args):
     #    sys.stderr.write(" Unable to create h264 parser \n")
 
 
-    # 21 -Agst -2020
-    # Quito temporalmente Decoder para evaluar si es necesario
-
     print("Creating Decoder \n")
     decoder = Gst.ElementFactory.make("nvv4l2decoder", "nvv4l2-decoder")
     if not decoder:
@@ -604,7 +602,13 @@ def main(args):
     
     
     # Prueba de Dewarp
-    nvdewarp = Gst.ElementFactory.make("nvdewarper","Dewarp360")
+    nvdewarp = Gst.ElementFactory.make("nvdewarper","nvdewarp0")
+    if not nvdewarp:
+        sys.stderr.write(" Unableto create dewarp \n")
+
+    #nvdewarp.set_property('config-file',CURRENT_DIR + "/configs/dewarp_config.txt")
+    nvdewarp.set_property("config-file",CURRENT_DIR + "/configs/config_dewarper.txt")
+    nvdewarp.set_property('source_id', 0)
     
     pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")
     if not pgie:
@@ -738,6 +742,7 @@ def main(args):
     #
 
     pipeline.add(decoder)   #Se elimina en version 2.1
+    pipeline.add(nvdewarp)
     pipeline.add(pgie)
     pipeline.add(tracker)
     #pipeline.add(sgie1)
@@ -760,8 +765,9 @@ def main(args):
 
     srcpad.link(sinkpad)    
     source_bin.link(decoder)
-    decoder.link(streammux)
-    #source.bin.link(streammux)
+    decoder.link(nvdewarp)
+    nvdewarp.link(streammux)
+    #decoder.link(streammux)
     streammux.link(pgie)
     pgie.link(tracker)
     tracker.link(tiler)
