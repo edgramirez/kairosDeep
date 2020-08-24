@@ -478,12 +478,12 @@ def aforo(box, object_id, ids, previous):
         area = 2
     else:
         area = 1
-
+    #print("Estoy en Area ",area, object_id)
     if object_id not in initial:
         initial.update({object_id: area})
     else:
         last.update({object_id: area})
-
+    #print("Estoy en Area =",area, "Object ID = ",object_id,"Pevious =",previous)
     if previous:
         camera_id = get_camera_mac_address()
         direction_1_to_2 = (get_outside_area() + 1) % 2

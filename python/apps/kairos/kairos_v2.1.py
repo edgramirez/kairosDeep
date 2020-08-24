@@ -76,11 +76,11 @@ SOCIAL_DISTANCE_SERVICE = 2
 #
 
 MAX_DISPLAY_LEN = 64
-MUXER_OUTPUT_WIDTH = 1920
-MUXER_OUTPUT_HEIGHT = 1080
+MUXER_OUTPUT_WIDTH = 1920             # 1280 
+MUXER_OUTPUT_HEIGHT = 1080            # 1080
 MUXER_BATCH_TIMEOUT_USEC = 4000000
-TILED_OUTPUT_WIDTH = 1920
-TILED_OUTPUT_HEIGHT = 1080
+TILED_OUTPUT_WIDTH = 1920             # 720p
+TILED_OUTPUT_HEIGHT = 1080            # 720p
 GST_CAPS_FEATURES_NVMM = "memory:NVMM"
 
 #pgie_classes_str = ["Vehicle", "TwoWheeler", "Person", "RoadSign"]
@@ -97,14 +97,14 @@ fps_streams = {}
 global counter
 global current_time
 global offset_time
-global entrada
-global salida                       # Faltaba definirla
+#global entrada
+#global salida                       # Faltaba definirla
 
 # inicializacion de contadores para Aforo
 # que se imprimara en la pantalla
 
-entrada = 0
-salida = 0
+#entrada = 0
+#salida = 0
 
 
 
@@ -162,10 +162,13 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
-    global entrada, salida                  # definicion de variables de conteo para Aforo
-    
+    #global entrada, salida                  # definicion de variables de conteo para Aforo
+    entrada = 0
+    salida = 0
+
     servicios_habilitados = service.emulate_reading_from_server()    
     #print("Valores Servicios :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
+
 
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
@@ -268,11 +271,17 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         l_obj = frame_meta.obj_meta_list
         num_rects = frame_meta.num_obj_meta
         
+        # La camara Meraki tiene que estar configurada en 720p, todas se pueden a excepcion de la MV32 que el minimo es 1080p
+        #
+        #print(frame_meta.source_frame_height, frame_meta.source_frame_width)   # Alto 720 Ancho 1280
+        
         #
         #print("stream_"+str(frame_meta.pad_index))     El numero de fuente viene en el pad_index
         # este valor debe usarse para identificar que servicio se debe ejecutar en el ciclo interno
         # 
-        
+    
+        # Estos arreglos se definen solo para AFORO
+
         ids = []
         boxes = []
 
@@ -288,14 +297,21 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
             # validacion de solo personas, solo para control de debug
             # print(" Class ID ", pgie_classes_str[obj_meta.class_id])
+            #print(obj_meta.detector_bbox_info)
 
             obj_counter[obj_meta.class_id] += 1
-            x = obj_meta.rect_params.left
-            y = obj_meta.rect_params.top
+            #x = int(obj_meta.rect_params.left)
+            #y = int(obj_meta.rect_params.top)
+            x = int(obj_meta.rect_params.width) +  int(obj_meta.rect_params.left/2)          
+            #y = int(obj_meta.rect_params.height) + int(obj_meta.rect_params.top)    # Ahora considera la base del box para contabilizar
+            y = int(obj_meta.rect_params.height) + int(obj_meta.rect_params.top/2)  # Aqui considera la parte media del Box 
 
+            
+            
             # Service Aforo (in and out)
-            ids.append(obj_meta.object_id)
-            boxes.append((x, y))
+            
+            #ids.append(obj_meta.object_id)
+            #boxes.append((x, y))
 
             #print(servicios_habilitados[AFORO_ENT_SAL_SERVICE])
             # 19-Agosto-2020
@@ -303,9 +319,13 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             # Es importante introducir los sources considerando lo anterior
             #
             if servicios_habilitados[AFORO_ENT_SAL_SERVICE] and ( frame_meta.pad_index % 2 == 0  ): 
+                
+                ids.append(obj_meta.object_id)
+                boxes.append((x, y))
+
                 #print("Servicio de Aforo habilitado")
                 entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, previous)
-                #print("Valor Direccion ", entrada, salida)
+                print("x=",x," y=",y," ID = ",obj_meta.object_id," Entrada=",entrada," Salida= ",salida," Frame =",frame_meta.pad_index,"Bandera=",previous)
                 #if direction == 1: 
                 #    contador_entrada += 1
                 #    print("Entrada", contador_entrada)
@@ -337,7 +357,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 service.set_frame_counter(frame_number)
                 service.tracked_on_time_social_distance(boxes, ids, boxes_length)
 
-        if not previous and servicios_habilitados[SOCIAL_DISTANCE_SERVICE] and ( frame_meta.pad_index % 2 != 0  ):
+        if not previous and servicios_habilitados[AFORO_ENT_SAL_SERVICE] and ( frame_meta.pad_index % 2 == 0  ):
             previous = service.set_previous()
 
         # Impresion en el video de los valores que nos interesan
@@ -355,16 +375,18 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         py_nvosd_text_params.x_offset = 100
         py_nvosd_text_params.y_offset = 120
         py_nvosd_text_params.font_params.font_name = "Arial"
-        py_nvosd_text_params.font_params.font_size = 10
-        py_nvosd_text_params.font_params.font_color.red = 1.0
-        py_nvosd_text_params.font_params.font_color.green = 1.0
-        py_nvosd_text_params.font_params.font_color.blue = 1.0
-        py_nvosd_text_params.font_params.font_color.alpha = 1.0
+        py_nvosd_text_params.font_params.font_size = 20
+        py_nvosd_text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
+        #py_nvosd_text_params.font_params.font_color.red = 1.0
+        #py_nvosd_text_params.font_params.font_color.green = 1.0
+        #py_nvosd_text_params.font_params.font_color.blue = 1.0
+        #py_nvosd_text_params.font_params.font_color.alpha = 1.0
         py_nvosd_text_params.set_bg_clr = 1
-        py_nvosd_text_params.text_bg_clr.red = 0.0
-        py_nvosd_text_params.text_bg_clr.green = 0.0
-        py_nvosd_text_params.text_bg_clr.blue = 0.0
-        py_nvosd_text_params.text_bg_clr.alpha = 1.0
+        py_nvosd_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 1.0)
+        #py_nvosd_text_params.text_bg_clr.red = 0.0
+        #py_nvosd_text_params.text_bg_clr.green = 0.0
+        #py_nvosd_text_params.text_bg_clr.blue = 0.0
+        #py_nvosd_text_params.text_bg_clr.alpha = 1.0
         
         if servicios_habilitados[AFORO_ENT_SAL_SERVICE] and ( frame_meta.pad_index % 2 == 0 ):
             display_meta.num_lines = 1      # numero de lineas
@@ -376,11 +398,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             # los valos de las coordenadas tienen que ser obtenidos del archivo de configuracion
             # en este momento estan hardcode
  
-            py_nvosd_line_params.x1 = 510
-            py_nvosd_line_params.y1 = 740
-            py_nvosd_line_params.x2 = 1050
-            py_nvosd_line_params.y2 = 740
+            py_nvosd_line_params.x1 = 500      # 510
+            py_nvosd_line_params.y1 = 730      # 740
+            py_nvosd_line_params.x2 = 1150     # 1050
+            py_nvosd_line_params.y2 = 730      # 740
             py_nvosd_line_params.line_width = 5
+        
             py_nvosd_line_params.line_color.red = 1.0
             py_nvosd_line_params.line_color.green = 1.0
             py_nvosd_line_params.line_color.blue = 1.0
@@ -396,6 +419,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             py_nvosd_rect_params.top = 680
             py_nvosd_rect_params.width = 560
             py_nvosd_rect_params.border_width = 4
+            
             py_nvosd_rect_params.border_color.red = 0.0
             py_nvosd_rect_params.border_color.green = 0.0
             py_nvosd_rect_params.border_color.blue = 1.0
@@ -406,10 +430,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Vehicle_count={} Person_count={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_VEHICLE],obj_counter[PGIE_CLASS_ID_PERSON])
         if servicios_habilitados[AFORO_ENT_SAL_SERVICE] and ( frame_meta.pad_index % 2 == 0  ):
-            py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
+            py_nvosd_text_params.display_text = "AFORO Source ID={} Person_count={} Entradas={} Salidas={}".format(frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
         elif servicios_habilitados[SOCIAL_DISTANCE_SERVICE] and ( frame_meta.pad_index % 2 != 0  ):
             #print("SOCIAL DISTANCE DSIPLAY")
-            py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
+            py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Person_count={} ".format( frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
         
             
         # Lo manda a directo streaming
@@ -566,6 +590,10 @@ def main(args):
     # if not h264parser:
     #    sys.stderr.write(" Unable to create h264 parser \n")
 
+
+    # 21 -Agst -2020
+    # Quito temporalmente Decoder para evaluar si es necesario
+
     print("Creating Decoder \n")
     decoder = Gst.ElementFactory.make("nvv4l2decoder", "nvv4l2-decoder")
     if not decoder:
@@ -631,9 +659,9 @@ def main(args):
     if is_live:
         print("At least one of the sources is live")
         streammux.set_property('live-source', 1)
-        #streammux.set_property('live-source', 1)
         
-    # Tamano del streammux, si el video viene a 720, se ajusta automaticamente
+    # Tamano del streammux, si el video viene a 720p, se ajusta automaticamente
+    # Ahorita los videos meraki viene configurados a 720p
 
     streammux.set_property('width', 1920)
     streammux.set_property('height', 1080)
@@ -705,7 +733,7 @@ def main(args):
     #  version 2.1 no requiere inferencias secundarias
     #
 
-    pipeline.add(decoder)
+    pipeline.add(decoder)   #Se elimina en version 2.1
     pipeline.add(pgie)
     pipeline.add(tracker)
     #pipeline.add(sgie1)
@@ -726,17 +754,10 @@ def main(args):
     #source.link(h264parser)
     #h264parser.link(decoder)
 
-    # lineas ya ejecutadas en el for anterior
-    #sinkpad = streammux.get_request_pad("sink_0")
-    #if not sinkpad:
-    #    sys.stderr.write(" Unable to get the sink pad of streammux \n")
-    #srcpad = decoder.get_static_pad("src")
-    #if not srcpad:
-    #    sys.stderr.write(" Unable to get source pad of decoder \n")
-
     srcpad.link(sinkpad)    
     source_bin.link(decoder)
     decoder.link(streammux)
+    #source.bin.link(streammux)
     streammux.link(pgie)
     pgie.link(tracker)
     tracker.link(tiler)
