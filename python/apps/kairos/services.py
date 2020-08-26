@@ -413,6 +413,9 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-end': 1595907644469,
                         }
                 print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2)
+                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                x.start()
+
                 if direction_1_to_2 == 1:
                     entradas += 1
                 else:
@@ -432,6 +435,9 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-end': 1595907644469,
                         }
                 print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1)
+                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                x.start()
+
                 if direction_2_to_1 == 1:
                     entradas += 1
                 else:
