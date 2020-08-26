@@ -232,7 +232,7 @@ def send_json(payload, action, url = None, **options):
     data = json.dumps(payload)
 
     # emilio comenta esto para insertar en MongoDB
-    return True
+    # return True
 
     for retry in range(retries):
         try:
@@ -403,6 +403,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
         direction_1_to_2 = outside_area % 2
         direction_2_to_1 = (outside_area + 1) % 2
         elements_to_delete = set()
+        srv_url = get_service_count_in_and_out_url()
 
         for item in last.keys():
             if initial[item] == 1 and last[item] == 2:
