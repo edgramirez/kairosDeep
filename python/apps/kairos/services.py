@@ -378,7 +378,7 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, camera_id):
+def aforo(box, object_id, ids, camera_id, outside_area):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -386,7 +386,6 @@ def aforo(box, object_id, ids, camera_id):
     This can be changed by modifying the configuration variable "outside_area" to 2 (by default 1)
     x = box[0]
     y = box[1]
-
 
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
@@ -397,16 +396,13 @@ def aforo(box, object_id, ids, camera_id):
         area = 2
     else:
         area = 1
-    #print("Estoy en Area ",area, object_id)
     if object_id not in initial:
         initial.update({object_id: area})
     else:
         last.update({object_id: area})
-    #print("Estoy en Area =",area, "Object ID = ",object_id,"Pevious =",previous)
     if previous:
-        #camera_id = get_camera_mac_address()
-        direction_1_to_2 = (get_outside_area() + 1) % 2
-        direction_2_to_1 = get_outside_area() % 2
+        direction_1_to_2 = (outside_area + 1) % 2
+        direction_2_to_1 = outside_area % 2
         elements_to_delete = set()
 
         for item in last.keys():
@@ -418,12 +414,11 @@ def aforo(box, object_id, ids, camera_id):
                         '#date-end': 1595907644469,
                         }
                 print('Out if area 1 is outside, camera_id', camera_id, item, direction_1_to_2)
-                if direction_1_to_2 == 1:  
+                if direction_1_to_2 == 1:
                     entradas += 1
                 else:
                     salidas += 1
-                #direction = direction_1_to_2
-                # deleting elements that are no longer present in the list of ids
+
                 if item not in ids:
                     elements_to_delete.add(item)
                     initial.pop(item)
@@ -438,13 +433,11 @@ def aforo(box, object_id, ids, camera_id):
                         '#date-end': 1595907644469,
                         }
                 print('In if area 1 is inside camera_id', camera_id, item, direction_2_to_1)
-                if direction_2_to_1 == 1:  
+                if direction_2_to_1 == 1:
                     entradas += 1
                 else:
                     salidas += 1
-                #direction = direction_2_to_1
 
-                # deleting elements that are no longer present in the list of ids
                 if item not in ids:
                     elements_to_delete.add(item)
                     initial.pop(item)

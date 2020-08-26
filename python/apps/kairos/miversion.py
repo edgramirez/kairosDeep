@@ -240,8 +240,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
             if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
                 camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
-                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id)
-                print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"SAlida=",salida) 
+                outside_area = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'outside_area')
+                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area)
+                #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"SAlida=",salida)
             try: 
                 l_obj = l_obj.next
             except StopIteration:
