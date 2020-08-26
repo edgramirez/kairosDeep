@@ -207,6 +207,13 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     l_frame = batch_meta.frame_meta_list
 
+    if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
+        camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
+        outside_area = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'outside_area')
+        reference_line = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'aforo_reference_line_coordinates')
+        aforo_line_width = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'line_width')
+        aforo_line_color = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'line_color')
+
     while l_frame is not None:
         try:
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
@@ -239,9 +246,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             boxes.append((x, y))
 
             if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
-                camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
-                outside_area = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'outside_area')
-                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area)
+                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line)
                 #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"SAlida=",salida)
             try: 
                 l_obj = l_obj.next
@@ -255,7 +260,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 nfps = 19 # HARDCODED TILL GET THE REAL VALUE
                 camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
                 risk_value = nfps * get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'persistence_time')
-                # raiz cuadrada de 2, maxima distancia de la suma de sus lados
                 distance_plus_factor = get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'tolerated_distance') * 1.42
                 service.tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, distance_plus_factor)
 
@@ -291,15 +295,15 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             # los valos de las coordenadas tienen que ser obtenidos del archivo de configuracion
             # en este momento estan hardcode
  
-            py_nvosd_line_params.x1 = 510
-            py_nvosd_line_params.y1 = 740
-            py_nvosd_line_params.x2 = 1050
-            py_nvosd_line_params.y2 = 740
-            py_nvosd_line_params.line_width = 5
-            py_nvosd_line_params.line_color.red = 1.0
-            py_nvosd_line_params.line_color.green = 1.0
-            py_nvosd_line_params.line_color.blue = 1.0
-            py_nvosd_line_params.line_color.alpha = 1.0
+            py_nvosd_line_params.x1 = reference_line[0][0]
+            py_nvosd_line_params.y1 = reference_line[0][1]
+            py_nvosd_line_params.x2 = reference_line[1][0]
+            py_nvosd_line_params.y2 = reference_line[1][1]
+            py_nvosd_line_params.line_width = aforo_line_width
+            py_nvosd_line_params.line_color.red = aforo_line_color[0]
+            py_nvosd_line_params.line_color.green = aforo_line_color[1]
+            py_nvosd_line_params.line_color.blue = aforo_line_color[2]
+            py_nvosd_line_params.line_color.alpha = aforo_line_color[3]
 
             # setup del rectangulo de Ent/Sal
             # de igual manera que los parametros de linea, 

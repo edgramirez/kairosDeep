@@ -193,14 +193,13 @@ def get_social_distance_parameter_value(value = None):
 
 
 # Return true if line segments AB and CD intersect
-def check_if_object_is_in_area2(object_coordinates):
+def check_if_object_is_in_area2(object_coordinates, reference_line):
     '''
     returns False if object is in area A1
     returns True if object is in area A2
     '''
     A = (0, 0)
     B = object_coordinates
-    reference_line = get_aforo_reference_line_coordinates()
     C = reference_line[0]
     D = reference_line[1]
 
@@ -378,7 +377,7 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, camera_id, outside_area):
+def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -392,7 +391,7 @@ def aforo(box, object_id, ids, camera_id, outside_area):
     '''
     global entradas, salidas, previous
 
-    if check_if_object_is_in_area2(box):
+    if check_if_object_is_in_area2(box, referece_line):
         area = 2
     else:
         area = 1
@@ -413,7 +412,7 @@ def aforo(box, object_id, ids, camera_id, outside_area):
                         '#date-start': get_timestamp(),
                         '#date-end': 1595907644469,
                         }
-                print('Out if area 1 is outside, camera_id', camera_id, item, direction_1_to_2)
+                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2)
                 if direction_1_to_2 == 1:
                     entradas += 1
                 else:
@@ -432,7 +431,7 @@ def aforo(box, object_id, ids, camera_id, outside_area):
                         '#date-start': get_timestamp(),
                         '#date-end': 1595907644469,
                         }
-                print('In if area 1 is inside camera_id', camera_id, item, direction_2_to_1)
+                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1)
                 if direction_2_to_1 == 1:
                     entradas += 1
                 else:
@@ -599,7 +598,6 @@ set_aforo_reference_line_coordinates()
 set_server_url()
 header = get_headers()
 nfps = get_number_of_frames_per_second()
-#risk_value = nfps * cfg['services']['social_distance']['persistence_time']
 
 dict_of_ids = {}
 initial = {}
