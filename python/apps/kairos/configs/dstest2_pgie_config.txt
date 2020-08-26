@@ -80,7 +80,7 @@ gie-unique-id=1
 output-blob-names=conv2d_bbox;conv2d_cov/Sigmoid
 
 # 
-workspace-size=1228
+workspace-size=228
 
 [class-attrs-all]
 #threshold=0.2
@@ -88,5 +88,5 @@ workspace-size=1228
 pre-cluster-threshold=0.2
 eps=0.2
 group-threshold=1
-detected-max-w=280
-detected-max-h=200
+#detected-max-w=280
+detected-max-h=400

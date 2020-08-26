@@ -234,7 +234,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             y = int(obj_meta.rect_params.height) + int(obj_meta.rect_params.top/2)
             #y = obj_meta.rect_params.top
 
-
             # Service Aforo (in and out)
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
@@ -242,7 +241,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
                 camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
                 entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id)
-
+                print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"SAlida=",salida) 
             try: 
                 l_obj = l_obj.next
             except StopIteration:
