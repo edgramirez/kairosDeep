@@ -418,7 +418,10 @@ def aforo(box, object_id, ids, camera_id):
                         '#date-end': 1595907644469,
                         }
                 print('Out if area 1 is outside, camera_id', camera_id, item, direction_1_to_2)
-                salidas += 1
+                if direction_1_to_2 == 1:  
+                    entradas += 1
+                else:
+                    salidas += 1
                 #direction = direction_1_to_2
                 # deleting elements that are no longer present in the list of ids
                 if item not in ids:
@@ -435,7 +438,10 @@ def aforo(box, object_id, ids, camera_id):
                         '#date-end': 1595907644469,
                         }
                 print('In if area 1 is inside camera_id', camera_id, item, direction_2_to_1)
-                entradas += 1
+                if direction_2_to_1 == 1:  
+                    entradas += 1
+                else:
+                    salidas += 1
                 #direction = direction_2_to_1
 
                 # deleting elements that are no longer present in the list of ids
