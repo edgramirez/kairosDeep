@@ -12,17 +12,22 @@ config = {
             },
 
         'cameras': {
-            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:e11': {
+            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:111': {
                 'aforo': {'enabled': True,'outside_area': 1, 'aforo_reference_line_coordinates': [(510, 740), (1050, 740)]},
                 'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'enabled_draw_line': False,'enabled_draw_rectangle': False,'line_width': 3,'line_color': (50, 120 ,255)},
                 'people_counting': {'enabled': False},
                 },
-            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:e22': {
+            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:222': {
                 'aforo': {'enabled': True,'outside_area': 1, 'aforo_reference_line_coordinates': [(510, 740), (1050, 740)]},
                 'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'enabled_draw_line': False,'enabled_draw_rectangle': False,'line_width': 3,'line_color': (50, 120 ,255)},
                 'people_counting': {'enabled': False},
                 },
-            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:e33': {
+            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:333': {
+                'aforo': {'enabled': True,'outside_area': 1, 'aforo_reference_line_coordinates': [(510, 740), (1050, 740)]},
+                'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'enabled_draw_line': False,'enabled_draw_rectangle': False,'line_width': 3,'line_color': (50, 120 ,255)},
+                'people_counting': {'enabled': False},
+                },
+            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:444': {
                 'aforo': {'enabled': True,'outside_area': 1, 'aforo_reference_line_coordinates': [(510, 740), (1050, 740)]},
                 'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'enabled_draw_line': False,'enabled_draw_rectangle': False,'line_width': 3,'line_color': (50, 120 ,255)},
                 'people_counting': {'enabled': False},
