@@ -229,8 +229,11 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 break           
 
             obj_counter[obj_meta.class_id] += 1
-            x = obj_meta.rect_params.left
-            y = obj_meta.rect_params.top
+            x = int(obj_meta.rect_params.width) +  int(obj_meta.rect_params.left/2)
+            #x = obj_meta.rect_params.left
+            y = int(obj_meta.rect_params.height) + int(obj_meta.rect_params.top/2)
+            #y = obj_meta.rect_params.top
+
 
             # Service Aforo (in and out)
             ids.append(obj_meta.object_id)
@@ -394,6 +397,7 @@ def create_source_bin(index, uri):
 def main(args):
     # Check input arguments
     # Permite introducir un numero x de fuentes, en nuestro caso streamings delas camaras Meraki        
+    emulate_reading_from_server()    
     number_sources = len(args)-1    
 
     if number_sources+1 < 2:
@@ -403,7 +407,6 @@ def main(args):
     # Variable para verificar si al menos un video esta vivo
     is_live = False
 
-    emulate_reading_from_server()    
     
     for i in range(0, number_sources):
         fps_streams["stream{0}".format(i)] = GETFPS(i)
