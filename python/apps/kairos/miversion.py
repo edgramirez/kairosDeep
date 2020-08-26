@@ -30,6 +30,7 @@
 ################################################################################
 import sys
 import os
+import re
 sys.path.append('../')
 import platform
 import configparser
@@ -65,9 +66,9 @@ PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
 PGIE_CLASS_ID_ROADSIGN = 3
 
-PEOPLE_COUNTING_SERVICE = 0
-AFORO_ENT_SAL_SERVICE = 1
-SOCIAL_DISTANCE_SERVICE = 2
+#PEOPLE_COUNTING_SERVICE = 0
+#AFORO_ENT_SAL_SERVICE = 1
+#SOCIAL_DISTANCE_SERVICE = 2
 
 #
 # Variables adicionales para el manejo de la funcionalidad de Tiler
@@ -84,71 +85,101 @@ TILED_OUTPUT_HEIGHT = 1080
 GST_CAPS_FEATURES_NVMM = "memory:NVMM"
 
 #pgie_classes_str = ["Vehicle", "TwoWheeler", "Person", "RoadSign"]
-servicios_habilitados = {}
-
 
 # directorio actual
 CURRENT_DIR = os.getcwd()
 
-# Matriz de frames per second
-# Se utiliza en tiler
+# Matriz de frames per second, Se utiliza en tiler
 fps_streams = {}
 
-global counter
-global current_time
-global offset_time
-global entrada
+global aforo_list
+global social_distance_list
+global people_counting_list
+global camera_list
 
 
-def addSecs(tm, secs):
-    fulldate = datetime.datetime(100, 1, 1, tm.hour, tm.minute, tm.second)
-    fulldate = fulldate + datetime.timedelta(seconds=secs)
-    return fulldate.time()
+def set_people_counting(value=None):
+    global people_counting_list
+    if value is None:
+        people_counting_list = []
+    else:
+        people_counting_list.append(value)
 
 
-def set_counter():
-    global counter
-    counter = 0
+def get_people_counting(index = None, key = None):
+    global people_counting_list
+    if index is None:
+        return people_counting_list
+    else:
+        return people_counting_list[index][key]
 
 
-def get_counter():
-    global counter
-    return counter
+def set_social_distance(value=None):
+    global social_distance_list
+    if value is None:
+        social_distance_list = []
+    else:
+        social_distance_list.append(value)
 
 
-def increment():
-    global counter
-    counter += 1
+def get_social_distance(index = None, key = None):
+    global social_distance_list
+    if index is None:
+        return social_distance_list
+    else:
+        return social_distance_list[index][key]
 
 
-def set_current_time():
-    global current_time
-    current_time = datetime.datetime.now().time()
+def set_aforo(value=None):
+    global aforo_list
+    if value is None:
+        aforo_list = []
+    else:
+        aforo_list.append(value)
 
 
-def get_current_time():
-    global current_time
-    return current_time
+def get_aforo(index = None, key = None):
+    global aforo_list
+    if index is None:
+        return aforo_list
+    else:
+        return aforo_list[index][key]
 
 
-def set_offset_time():
-    global offset_time
-    offset_time = addSecs(get_current_time(), 60)
+def set_camera(value=None):
+    global camera_list
+    if value is None:
+        camera_list = []
+    else:
+        camera_list.append(value)
 
 
-def get_offset_time():
-    global offset_time
-    return offset_time
+def get_camera_id(index = None):
+    global camera_list
+    if index is None:
+        return camera_list
+    else:
+        return camera_list[index]
 
 
-set_counter()
-set_current_time()
-set_offset_time()
+def emulate_reading_from_server():
+    from configs.Server_Emulatation_configs import config as scfg
 
-#
-# Funcion principal donde se evaluan los frames y los objectos detectados
-#
-#
+    # setup the services for each camera
+    set_people_counting()
+    set_social_distance()
+    set_aforo()
+    set_camera()
+    for camera in scfg['cameras'].keys():
+        set_camera(camera)
+        for service in scfg['cameras'][camera].keys():
+            if service == 'aforo':
+                set_aforo(scfg['cameras'][camera]['aforo'])
+            elif service == 'people_counting':
+                set_people_counting(scfg['cameras'][camera][service])
+            elif service == 'social_distance':
+                set_social_distance(scfg['cameras'][camera][service])
+
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
 
@@ -157,9 +188,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     entrada = 0
     salida = 0
-
-    servicios_habilitados = service.emulate_reading_from_server()    
-    #print("Valores Servicios :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
 
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
@@ -178,66 +206,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     l_frame = batch_meta.frame_meta_list
-    previous = service.get_previous()
-
-    '''
-    #====================== Definicion de valores de mensajes a pantalla
-    display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
-    
-    # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
-    display_meta.num_labels = 1                            # numero de textos
-    py_nvosd_text_params = display_meta.text_params[0]
-    # Setup del label de impresion en pantalla
-    py_nvosd_text_params.x_offset = 100
-    py_nvosd_text_params.y_offset = 120
-    py_nvosd_text_params.font_params.font_name = "Arial"
-    py_nvosd_text_params.font_params.font_size = 10
-    py_nvosd_text_params.font_params.font_color.red = 1.0
-    py_nvosd_text_params.font_params.font_color.green = 1.0
-    py_nvosd_text_params.font_params.font_color.blue = 1.0
-    py_nvosd_text_params.font_params.font_color.alpha = 1.0
-    py_nvosd_text_params.set_bg_clr = 1
-    py_nvosd_text_params.text_bg_clr.red = 0.0
-    py_nvosd_text_params.text_bg_clr.green = 0.0
-    py_nvosd_text_params.text_bg_clr.blue = 0.0
-    py_nvosd_text_params.text_bg_clr.alpha = 1.0
-    
-    if servicios_habilitados[AFORO_ENT_SAL_SERVICE]:
-        display_meta.num_lines = 1      # numero de lineas
-        display_meta.num_rects = 1      # numero de rectangulos  
-        py_nvosd_line_params = display_meta.line_params[0]                
-        py_nvosd_rect_params = display_meta.rect_params[0]        
-
-        # Setup de la linea de Ent/Sal
-        # los valos de las coordenadas tienen que ser obtenidos del archivo de configuracion
-        # en este momento estan hardcode
- 
-        py_nvosd_line_params.x1 = 510
-        py_nvosd_line_params.y1 = 740
-        py_nvosd_line_params.x2 = 1050
-        py_nvosd_line_params.y2 = 740
-        py_nvosd_line_params.line_width = 5
-        py_nvosd_line_params.line_color.red = 1.0
-        py_nvosd_line_params.line_color.green = 1.0
-        py_nvosd_line_params.line_color.blue = 1.0
-        py_nvosd_line_params.line_color.alpha = 1.0
-
-        # setup del rectangulo de Ent/Sal
-        # de igual manera que los parametros de linea, 
-        # los valores del rectangulo se calculan en base a
-        # los valoes del archivo de configuracion
-
-        py_nvosd_rect_params.left = 500
-        py_nvosd_rect_params.height = 120
-        py_nvosd_rect_params.top = 680
-        py_nvosd_rect_params.width = 560
-        py_nvosd_rect_params.border_width = 4
-        py_nvosd_rect_params.border_color.red = 0.0
-        py_nvosd_rect_params.border_color.green = 0.0
-        py_nvosd_rect_params.border_color.blue = 1.0
-        py_nvosd_rect_params.border_color.alpha = 1.0
-        
-    #======================  '''
 
     while l_frame is not None:
         try:
@@ -245,43 +213,20 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         except StopIteration:
             break
 
-        # que hace esta funcion ????
-        #if get_counter() == 60:
-        #    set_counter()
-
-        #    if get_current_time() > get_offset_time():
-        #        print('aca...............')
-        #        service.emulate_reading_from_server()
-        #        set_offset_time()
-        #    else:
-        #        set_current_time()
-        #else:
-        #    increment()
-
         frame_number = frame_meta.frame_num
         l_obj = frame_meta.obj_meta_list
         num_rects = frame_meta.num_obj_meta
         
-        #
-        #print("stream_"+str(frame_meta.pad_index))     El numero de fuente viene en el pad_index
-        # este valor debe usarse para identificar que servicio se debe ejecutar en el ciclo interno
-        # 
-        
         ids = []
         boxes = []
 
-        #
         # Ciclo interno donde se evaluan los objetos dentro del frame
-        #
         while l_obj is not None: 
             try:
                 # Casting l_obj.data to pyds.NvDsObjectMeta
                 obj_meta = pyds.NvDsObjectMeta.cast(l_obj.data)         
             except StopIteration:
                 break           
-
-            # validacion de solo personas, solo para control de debug
-            # print(" Class ID ", pgie_classes_str[obj_meta.class_id])
 
             obj_counter[obj_meta.class_id] += 1
             x = obj_meta.rect_params.left
@@ -291,53 +236,26 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
 
-            #print(servicios_habilitados[AFORO_ENT_SAL_SERVICE])
-            # 19-Agosto-2020
-            # En este momento los streaming 0,2,4,6 ( pares ) son para Aforo y los nones son para Social Distance
-            # Es importante introducir los sources considerando lo anterior
-            #
-            if servicios_habilitados[AFORO_ENT_SAL_SERVICE]:
-                #print("Servicio de Aforo habilitado")
-                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, previous)
-                #print("Valor Direccion ", entrada, salida)
-                #if direction == 1: 
-                #    contador_entrada += 1
-                #    print("Entrada", contador_entrada)
-                #elif direction == 0:
-                #    print("Salida", contador_salida)
-                #    contador_salida += 1
-            #else:
-                # Service People counting
-                # print ("People Counting ") 
-                #if previous:
-                #    service.people_counting_last_time_detected(ids)
-                #    service.people_counting_storing_fist_time(obj_meta.object_id)
+            if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
+                camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
+                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id)
 
             try: 
                 l_obj = l_obj.next
             except StopIteration:
                 break
 
-        # Nota 18-Agst-2020
-        # El codigo de Social Distance se esta en este momento ejecutando fuera del ciclo de identificacion
-        # de objetos dentro del frame, creo que no debe ser asi
-
-        # Service Social Distance
-        # Solo aplican las fuentes impares 
-        
-        if servicios_habilitados[SOCIAL_DISTANCE_SERVICE]:
+        if get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
             boxes_length = len(boxes)
             if boxes_length > 1:
                 service.set_frame_counter(frame_number)
-                service.tracked_on_time_social_distance(boxes, ids, boxes_length)
+                nfps = 19 # HARDCODED TILL GET THE REAL VALUE
+                camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
+                risk_value = nfps * get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'persistence_time')
+                # raiz cuadrada de 2, maxima distancia de la suma de sus lados
+                distance_plus_factor = get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'tolerated_distance') * 1.42
+                service.tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, distance_plus_factor)
 
-        if not previous and servicios_habilitados[AFORO_ENT_SAL_SERVICE] and frame_meta.pad_index % 2 == 0:
-            previous = service.set_previous()
-
-        # Impresion en el video de los valores que nos interesan
-        # Dibujo de la linea de Ent/Sal 
-        # 
-    
         #====================== Definicion de valores de mensajes a pantalla
         display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
     
@@ -360,7 +278,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         py_nvosd_text_params.text_bg_clr.blue = 0.0
         py_nvosd_text_params.text_bg_clr.alpha = 1.0
         
-        if servicios_habilitados[AFORO_ENT_SAL_SERVICE]:
+        if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
             display_meta.num_lines = 1      # numero de lineas
             display_meta.num_rects = 1      # numero de rectangulos  
             py_nvosd_line_params = display_meta.line_params[0]                
@@ -395,26 +313,14 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             py_nvosd_rect_params.border_color.blue = 1.0
             py_nvosd_rect_params.border_color.alpha = 1.0
     
-    #===================== '''
-
-
-        #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Vehicle_count={} Person_count={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_VEHICLE],obj_counter[PGIE_CLASS_ID_PERSON])
-        if servicios_habilitados[AFORO_ENT_SAL_SERVICE]:
+        if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
             py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
-        elif servicios_habilitados[SOCIAL_DISTANCE_SERVICE]:
-            #print("SOCIAL DISTANCE DSIPLAY")
+        elif get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
-
+        #====================== FIN de definicion de valores de mensajes a pantalla
 
         # Lo manda a directo streaming
-        #if servicios_habilitados[AFORO_ENT_SAL_SERVICE] and ( frame_meta.pad_index % 2 == 0  ): 
         pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
-        #else:
-        #    pyds.nvds_remove_display_meta_from_frame(frame_meta, display_meta)
-
-        # Lo manda a terminal, siguientes 2 lineas, hacen lo mismo, diferentes funciones 
-        #print(pyds.get_string(py_nvosd_text_params.display_text))        
-        #print("Frame Number=", frame_number, "Number of Objects=",num_rects,"Vehicle_count=",vehicle_count,"Person_count=",person)
 
         fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()       
         try:
@@ -432,8 +338,7 @@ def cb_newpad(decodebin, decoder_src_pad, data):
     source_bin = data
     features = caps.get_features(0)
 
-    # Need to check if the pad created by the decodebin is for video and not
-    # audio.
+    # Need to check if the pad created by the decodebin is for video and not audio.
     print("gstname=", gstname)
     if gstname.find("video") != -1:
         # Link the decodebin pad only if decodebin has picked nvidia
@@ -497,6 +402,8 @@ def main(args):
 
     # Variable para verificar si al menos un video esta vivo
     is_live = False
+
+    emulate_reading_from_server()    
     
     for i in range(0, number_sources):
         fps_streams["stream{0}".format(i)] = GETFPS(i)
@@ -758,17 +665,6 @@ def main(args):
     # Lets add probe to get informed of the meta data generated, we add probe to
     # the sink pad of the osd element, since by that time, the buffer would have
     # had got all the metadata.
-
-    #servicios_habilitados = {
-    #    PEOPLE_COUNTING_SERVICE: False,
-    #    AFORO_ENT_SAL_SERVICE: False,
-    #    SOCIAL_DISTANCE_SERVICE: False   
-    #        }
-
-
-    #print("Valor Aforo Antes de leer del Servidor:", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
-    #servicios_habilitados = service.emulate_reading_from_server()
-    #print("Valor Aforo :", servicios_habilitados[AFORO_ENT_SAL_SERVICE],servicios_habilitados[PEOPLE_COUNTING_SERVICE],servicios_habilitados[SOCIAL_DISTANCE_SERVICE])
 
     tiler_src_pad = tracker.get_static_pad("src")
     if not tiler_src_pad:

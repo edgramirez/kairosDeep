@@ -27,7 +27,7 @@ global server_url
 global previous
 global sd_keys
 global frame_count
-global distance_plus_factor
+#global distance_plus_factor
 global nfps
 global people_counting_enabled
 global aforo_enabled
@@ -41,67 +41,7 @@ entradas = 0
 previous = False
 first_time_set = set()
 last_time_set = set()
-distance_plus_factor = cfg['services']['social_distance']['tolerated_distance'] * 1.42  # raiz cuadrada de 2, maxima distancia de la suma de sus lados
-
-
-def set_people_counting_service(value = False):
-    global people_counting_enabled
-    if value:
-        people_counting_enabled = True
-    else:
-        people_counting_enabled = False
-
-
-def is_people_counting_enabled():
-    global people_counting_enabled
-    return people_counting_enabled
-
-
-def set_aforo_service(value = False):
-    global aforo_enabled
-    if value:
-        aforo_enabled = True
-    else:
-        aforo_enabled = False
-
-
-def is_aforo_enabled():
-    global aforo_enabled
-    return aforo_enabled
-
-
-def set_social_distance_service(value = False):
-    global social_distance_enabled
-    if value:
-        social_distance_enabled = True
-    else:
-        social_distance_enabled = False
-
-
-def is_social_distance_enabled():
-    global social_distance_enabled
-    return social_distance_enabled
-
-
-def emulate_reading_from_server():
-    patterns = ["'people_counting': {'enabled': True", "'aforo': {'enabled': True", "'social_distance': {'enabled': True"]
-    with open("configs/Server_Emulatation_configs.py") as fp:
-        Lines = fp.readlines()
-
-        set_people_counting_service()
-        set_social_distance_service()
-        set_aforo_service()
-        for line in Lines:
-            for pattern in patterns:
-                if re.search(pattern, line.strip()):
-                    if pattern == "'people_counting': {'enabled': True":
-                        set_people_counting_service(True)
-                    elif pattern == "'aforo': {'enabled': True":
-                        set_aforo_service(True)
-                    elif pattern == "'social_distance': {'enabled': True":
-                        set_social_distance_service(True)
-
-        return people_counting_enabled, aforo_enabled, social_distance_enabled
+#distance_plus_factor = cfg['services']['social_distance']['tolerated_distance'] * 1.42  # raiz cuadrada de 2, maxima distancia de la suma de sus lados
 
 
 def set_camera_mac_address(value = None):
@@ -179,17 +119,6 @@ def get_service_count_intersecting_in_any_direction_url():
 
 def get_service_social_distance_url():
     return get_server_url() + '/SERVICE_NOT_DEFINED_'
-
-
-def set_previous():
-    global previous
-    previous = True
-    return previous
-
-
-def get_previous():
-    global previous
-    return previous
 
 
 def get_supported_sd_keys():
@@ -303,6 +232,7 @@ def send_json(payload, action, url = None, **options):
     expected_response = options.get('expected_response', 200)
     data = json.dumps(payload)
 
+    # emilio comenta esto para insertar en MongoDB
     return True
 
     for retry in range(retries):
@@ -316,40 +246,40 @@ def send_json(payload, action, url = None, **options):
             else:
                 r = requests.delete(url, data=data, headers=header)
         except requests.exceptions.ConnectionError as e:
+            time.sleep(1)
             if retry == retries - 1:
                 raise Exception("Unable to Connect to the server after {} retries\n. Original exception".format(retry, str(e)))
         except requests.exceptions.HTTPError as e:
+            time.sleep(1)
             if retry == retries - 1:
                 raise Exception("Invalid HTTP response in {} retries\n. Original exception".format(retry, str(e)))
         except requests.exceptions.Timeout as e:
+            time.sleep(1)
             if retry == retries - 1:
                 raise Exception("Timeout reach in {} retries\n. Original exception".format(retry, str(e)))
         except requests.exceptions.TooManyRedirects as e:
+            time.sleep(1)
             if retry == retries - 1:
                 raise Exception("Too many redirection in {} retries\n. Original exception".format(retry, str(e)))
 
     return True
 
 
-
-
-def count_in_and_out_when_object_leaves_the_frame(ids):
+def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
     '''
     The area A1 is the one closer to the point (0,0)
     Area A1 is by default outside 
     Area A2 is by default inside 
     ** This could be modified by setting up the configuration parameter "outside_area" to 2, (by default is 1)
     '''
-    #if is_aforo_enabled():
     elements_to_delete = set()
-    camera_id = get_camera_mac_address()
+    #camera_id = get_camera_mac_address()
     direction_1_to_2 = get_outside_area() % 2
     direction_2_to_1 = (get_outside_area() + 1) % 2
     srv_url = get_service_count_in_and_out_url()
 
     for item in last.keys():
         if item not in ids:
-            #print('id', item, 'is not int:', ids)
             if initial[item] == 1 and last[item] == 2:
                 # value #date-end is not needed, just for compatibility we hardcode this value
                 # 'id': str(item),
@@ -363,7 +293,6 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
 
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url))
                 x.start()
-                #send_json(data, 'PUT', srv_url)
             elif initial[item] == 2 and last[item] == 1:
                 #        'id': str(item),
                 data = {
@@ -375,7 +304,6 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
                 print('Out sending_json........', item, direction_2_to_1)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
                 x.start()
-                #send_json(data, 'PUT', srv_url)
             initial.pop(item)
             elements_to_delete.add(item)
 
@@ -383,7 +311,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids):
         last.pop(item)
 
 
-def people_counting_storing_fist_time(object_id):
+def people_counting_storing_fist_time(object_id, camera_id):
     '''
     Storing only the first time the ID appears
     '''
@@ -391,11 +319,10 @@ def people_counting_storing_fist_time(object_id):
 
     srv_url = get_service_people_counting_url()
 
-    #if cfg['services']['people_counting']['enabled'] and object_id not in first_time_set:
-    # if is_people_counting_enabled() and object_id not in first_time_set:
     if object_id not in first_time_set:
+        #        'camera_id': get_camera_mac_address(),
         data = {
-                'camera_id': get_camera_mac_address(),
+                'camera_id': camera_id,
                 'date_time': get_timestamp(),
                 'object_id': object_id,
                 }
@@ -406,14 +333,12 @@ def people_counting_storing_fist_time(object_id):
         first_time_set.add(object_id)
 
 
-def people_counting_last_time_detected(ids):
+def people_counting_last_time_detected(ids, camera_id):
     global first_time_set
 
     srv_url = get_service_people_counting_url()
-    camera_id = get_camera_mac_address()
+    #camera_id = get_camera_mac_address()
 
-    #if cfg['services']['people_counting']['enabled'] and first_time_set:
-    # if is_people_counting_enabled() and first_time_set:
     if first_time_set:
         ids_set = set(ids)
         for item in first_time_set.difference(ids_set):
@@ -440,9 +365,6 @@ def counting_in_and_out_first_detection(box, object_id):
     x = box[0]
     y = box[1]
     '''
-    #if not cfg['services']['aforo']['enabled']:
-    #if not is_aforo_enabled():
-    #    return
     # returns True if object is in area A2
     if check_if_object_is_in_area2(box):
         if object_id not in initial:
@@ -456,7 +378,7 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, previous):
+def aforo(box, object_id, ids, camera_id):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -469,10 +391,7 @@ def aforo(box, object_id, ids, previous):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    global entradas, salidas
-    #    direction = -1
-    #if is_aforo_enabled():
-    # returns True if object is in area A2
+    global entradas, salidas, previous
 
     if check_if_object_is_in_area2(box):
         area = 2
@@ -485,7 +404,7 @@ def aforo(box, object_id, ids, previous):
         last.update({object_id: area})
     #print("Estoy en Area =",area, "Object ID = ",object_id,"Pevious =",previous)
     if previous:
-        camera_id = get_camera_mac_address()
+        #camera_id = get_camera_mac_address()
         direction_1_to_2 = (get_outside_area() + 1) % 2
         direction_2_to_1 = get_outside_area() % 2
         elements_to_delete = set()
@@ -498,7 +417,7 @@ def aforo(box, object_id, ids, previous):
                         '#date-start': get_timestamp(),
                         '#date-end': 1595907644469,
                         }
-                print('Oout if area 1 is inside sending_json........', item, direction_1_to_2)
+                print('Out if area 1 is outside, camera_id', camera_id, item, direction_1_to_2)
                 salidas += 1
                 #direction = direction_1_to_2
                 # deleting elements that are no longer present in the list of ids
@@ -515,7 +434,7 @@ def aforo(box, object_id, ids, previous):
                         '#date-start': get_timestamp(),
                         '#date-end': 1595907644469,
                         }
-                print('Iin if area 1 is inside sending_json........', item, direction_2_to_1)
+                print('In if area 1 is inside camera_id', camera_id, item, direction_2_to_1)
                 entradas += 1
                 #direction = direction_2_to_1
 
@@ -529,22 +448,19 @@ def aforo(box, object_id, ids, previous):
         # deleting elements that are no longer present in the list of ids
         for item in elements_to_delete:
             last.pop(item)
+    else:
+        previous = True
 
     return entradas, salidas
 
-def tracked_on_time_social_distance(boxes, ids, boxes_length):
-
-    #if not cfg['services']['social_distance']['enabled']:
-    #if not is_social_distance_enabled():
-    #    return
+def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, distance_plus_factor):
 
     # if we just detected 1 element, there is no need to calculate distances
-    #length = len(boxes)
-    #if length > 1:
-    global dict_of_ids, distance_plus_factor, nfps
+    #global dict_of_ids, distance_plus_factor, nfps
+    global dict_of_ids
 
     frame_count = get_frame_counter()
-    camera_id = get_camera_mac_address()
+    #camera_id = get_camera_mac_address()
     srv_url = get_service_social_distance_url()
 
     # if dictionary has no elements, there is no need to check anything
@@ -679,26 +595,12 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length):
         i += 1
 
 
-def validate_camera_mac_address(camera_ip):
-    TODO = 'este metodo bede terminar por medio de arp o nmap la direccion mac de la ip pasada como parametro'
-
-
-def id_colors():
-    # initialize a list of colors to represent the different detected IDs
-    np.random.seed(42)
-    return np.random.randint(0, 255, size=(10000, 3), dtype="uint8")
-
-
-emulate_reading_from_server()
-
-
-set_camera_mac_address()
 set_outside_area()
 set_aforo_reference_line_coordinates()
 set_server_url()
 header = get_headers()
 nfps = get_number_of_frames_per_second()
-risk_value = nfps * cfg['services']['social_distance']['persistence_time']
+#risk_value = nfps * cfg['services']['social_distance']['persistence_time']
 
 dict_of_ids = {}
 initial = {}
