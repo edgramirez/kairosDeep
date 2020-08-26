@@ -400,8 +400,8 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
     else:
         last.update({object_id: area})
     if previous:
-        direction_1_to_2 = (outside_area + 1) % 2
-        direction_2_to_1 = outside_area % 2
+        direction_1_to_2 = outside_area % 2
+        direction_2_to_1 = (outside_area + 1) % 2
         elements_to_delete = set()
 
         for item in last.keys():
