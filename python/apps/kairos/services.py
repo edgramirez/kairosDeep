@@ -184,8 +184,8 @@ def get_supported_actions():
 
 
 def get_timestamp():
-    #return int(time.time() * 1000)
-    return int(time.time())
+    return int(time.time() * 1000)
+    #return int(time.time())
 
 def get_social_distance_parameter_value(value = None):
     if value in get_supported_sd_keys():
