@@ -244,6 +244,7 @@ def send_json(payload, action, url = None, **options):
                 r = requests.put(url, data=data, headers=header)
             else:
                 r = requests.delete(url, data=data, headers=header)
+            return True
         except requests.exceptions.ConnectionError as e:
             time.sleep(1)
             if retry == retries - 1:
@@ -261,7 +262,6 @@ def send_json(payload, action, url = None, **options):
             if retry == retries - 1:
                 raise Exception("Too many redirection in {} retries\n. Original exception".format(retry, str(e)))
 
-    return True
 
 
 def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
