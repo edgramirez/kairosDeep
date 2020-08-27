@@ -12,11 +12,11 @@ config = {
             },
 
         'cameras': {
-            'Negocio0001-Tienda12-fe80::adc4:3105:77aa:111': {
+            'DTevar-culhuacan-34:56:fe:a3:99:de': {
                 'aforo': {
                     'enabled': True,
                     'outside_area': 1, 
-                    'aforo_reference_line_coordinates': [(510, 700), (1100, 700)], 
+                    'aforo_reference_line_coordinates': [(510, 710), (1100, 710)], 
                     'line_width': 5,
                     'line_color': [1, 1, 1, 1],
                     },

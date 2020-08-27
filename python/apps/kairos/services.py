@@ -286,7 +286,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
                         'direction': direction_1_to_2,
                         'camera-id': camera_id,
                         '#date-start': get_timestamp(),
-                        '#date-end': 1595907644469,
+                        '#date-end': get_timestamp(),
                         }
                 print('In sending_json........', item, direction_1_to_2)
 
@@ -298,7 +298,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
                         'direction': direction_2_to_1,
                         'camera-id': camera_id,
                         '#date-start': get_timestamp(),
-                        '#date-end': 1595907644469,
+                        '#date-end': get_timestamp(),
                         }
                 print('Out sending_json........', item, direction_2_to_1)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
@@ -411,7 +411,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         'direction': direction_1_to_2,
                         'camera-id': camera_id,
                         '#date-start': get_timestamp(),
-                        '#date-end': 1595907644469,
+                        '#date-end': get_timestamp(),
                         }
                 print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
@@ -433,7 +433,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         'direction': direction_2_to_1,
                         'camera-id': camera_id,
                         '#date-start': get_timestamp(),
-                        '#date-end': 1595907644469,
+                        '#date-end': get_timestamp(),
                         }
                 print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
