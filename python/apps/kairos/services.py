@@ -184,8 +184,8 @@ def get_supported_actions():
 
 
 def get_timestamp():
-    return int(time.time() * 1000)
-
+    #return int(time.time() * 1000)
+    return int(time.time())
 
 def get_social_distance_parameter_value(value = None):
     if value in get_supported_sd_keys():
@@ -401,7 +401,9 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
         last.update({object_id: area})
     if previous:
         direction_1_to_2 = outside_area % 2
+        #print(direction_1_to_2)
         direction_2_to_1 = (outside_area + 1) % 2
+        #print(direction_2_to_1)
         elements_to_delete = set()
         srv_url = get_service_count_in_and_out_url()
 
@@ -413,7 +415,8 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-start': get_timestamp(),
                         '#date-end': get_timestamp(),
                         }
-                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2)
+                #print(" Uno to Dos=",direction_1_to_2)
+                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",get_timestamp())
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
                 x.start()
 
@@ -435,7 +438,8 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-start': get_timestamp(),
                         '#date-end': get_timestamp(),
                         }
-                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1)
+                #print(" Dos to uno=",direction_2_to_1) 
+                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",get_timestamp())
                 x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
                 x.start()
 
