@@ -10,119 +10,59 @@ from math import sqrt
 from random import seed, randint
 from datetime import datetime
 
-from configs.configs import config as cfg
-
-
-files = glob.glob('output/*.png')
-for f in files:
-    os.remove(f)
 
 global first_time_set
 global last_time_set
 global mac_address
-global outside_area
 global reference_line_coordinates
 global header
 global server_url
 global previous
 global sd_keys
 global frame_count
-#global distance_plus_factor
 global nfps
 global people_counting_enabled
 global aforo_enabled
 global social_distance_enabled
+global aforo_url
+global social_distance_url
 
 global salidas
 global entradas
+
 salidas = 0
 entradas = 0
 
 previous = False
 first_time_set = set()
 last_time_set = set()
-#distance_plus_factor = cfg['services']['social_distance']['tolerated_distance'] * 1.42  # raiz cuadrada de 2, maxima distancia de la suma de sus lados
 
 
-def set_camera_mac_address(value = None):
-    global mac_address
-
-    if value is None:
-        mac_address = cfg['parameter']['camera_id']
-    else:
-        mac_address = value
+def set_header(token_file):
+    global header
+    if file_exists(token_file):
+        token_handler = open_file(token_file, 'r+')
+        header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
 
 
-def get_camera_mac_address():
-    global mac_address
-    return mac_address
+def set_aforo_url(srv_url):
+    global aforo_url
+    aforo_url = srv_url + 'tx/video-people.endpoint'
 
 
-def set_outside_area(value = None):
-    global outside_area
-
-    if value is None:
-        outside_area = cfg['services']['aforo']['outside_area']
-    else:
-        outside_area = value
+def set_service_social_distance_url(srv_url):
+    global social_distance_url
+    social_distance_url = srv_url + '/SERVICE_NOT_DEFINED_'
 
 
-def get_outside_area():
-    global outside_area
-    return outside_area
-
-
-def set_aforo_reference_line_coordinates(value = None):
-    global reference_line_coordinates
-
-    if value is None:
-        reference_line_coordinates = cfg['services']['aforo']['aforo_reference_line_coordinates']
-    else:
-        reference_line_coordinates = value
-
-
-def get_aforo_reference_line_coordinates():
-    global reference_line_coordinates
-    return reference_line_coordinates
-
-
-def get_headers():
-    token_handler = open_file(file_exists(cfg['server']['token_file']), 'r+')
-    return {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
-
-
-def set_server_url(url = None):
-    global server_url
-
-    if url is None:
-        server_url = cfg['server']['url']
-    else:
-        server_url = url
-
-
-def get_server_url():
-    global server_url
-    return server_url
-
-
-def get_service_count_in_and_out_url():
-    return get_server_url() + 'tx/video-people.endpoint'
-
-
-def get_service_people_counting_url():
-    return get_server_url() + '/SERVICE_NOT_DEFINED_'
-
-
+########## need corretion as in set_aforo_url()
 def get_service_count_intersecting_in_any_direction_url():
     return get_server_url() + '/SERVICE_NOT_DEFINED_'
 
 
-def get_service_social_distance_url():
+def set_service_people_counting_url():
     return get_server_url() + '/SERVICE_NOT_DEFINED_'
-
-
-def get_supported_sd_keys():
-    return tuple(cfg['services']['social_distance'].keys())
+######################
 
 
 def set_frame_counter(value):
@@ -187,10 +127,6 @@ def get_timestamp():
     return int(time.time() * 1000)
     #return int(time.time())
 
-def get_social_distance_parameter_value(value = None):
-    if value in get_supported_sd_keys():
-        return cfg['services']['social_distance'][value]
-
 
 # Return true if line segments AB and CD intersect
 def check_if_object_is_in_area2(object_coordinates, reference_line):
@@ -232,7 +168,7 @@ def send_json(payload, action, url = None, **options):
     data = json.dumps(payload)
 
     # emilio comenta esto para insertar en MongoDB
-    # return True
+    return True
 
     for retry in range(retries):
         try:
@@ -263,19 +199,17 @@ def send_json(payload, action, url = None, **options):
                 raise Exception("Too many redirection in {} retries\n. Original exception".format(retry, str(e)))
 
 
-
-def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
+def count_in_and_out_when_object_leaves_the_frame(ids, camera_id, outside_area):
     '''
     The area A1 is the one closer to the point (0,0)
     Area A1 is by default outside 
     Area A2 is by default inside 
     ** This could be modified by setting up the configuration parameter "outside_area" to 2, (by default is 1)
     '''
+    global aforo_url
     elements_to_delete = set()
-    #camera_id = get_camera_mac_address()
-    direction_1_to_2 = get_outside_area() % 2
-    direction_2_to_1 = (get_outside_area() + 1) % 2
-    srv_url = get_service_count_in_and_out_url()
+    direction_1_to_2 = outside_area % 2
+    direction_2_to_1 = outside_area + 1 % 2
 
     for item in last.keys():
         if item not in ids:
@@ -290,7 +224,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
                         }
                 print('In sending_json........', item, direction_1_to_2)
 
-                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url))
+                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url))
                 x.start()
             elif initial[item] == 2 and last[item] == 1:
                 #        'id': str(item),
@@ -301,7 +235,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id):
                         '#date-end': get_timestamp(),
                         }
                 print('Out sending_json........', item, direction_2_to_1)
-                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
             initial.pop(item)
             elements_to_delete.add(item)
@@ -319,7 +253,6 @@ def people_counting_storing_fist_time(object_id, camera_id):
     srv_url = get_service_people_counting_url()
 
     if object_id not in first_time_set:
-        #        'camera_id': get_camera_mac_address(),
         data = {
                 'camera_id': camera_id,
                 'date_time': get_timestamp(),
@@ -336,7 +269,6 @@ def people_counting_last_time_detected(ids, camera_id):
     global first_time_set
 
     srv_url = get_service_people_counting_url()
-    #camera_id = get_camera_mac_address()
 
     if first_time_set:
         ids_set = set(ids)
@@ -389,7 +321,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    global entradas, salidas, previous
+    global entradas, salidas, previous, aforo_url
 
     if check_if_object_is_in_area2(box, referece_line):
         area = 2
@@ -401,11 +333,8 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
         last.update({object_id: area})
     if previous:
         direction_1_to_2 = outside_area % 2
-        #print(direction_1_to_2)
         direction_2_to_1 = (outside_area + 1) % 2
-        #print(direction_2_to_1)
         elements_to_delete = set()
-        srv_url = get_service_count_in_and_out_url()
 
         for item in last.keys():
             if initial[item] == 1 and last[item] == 2:
@@ -415,9 +344,8 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-start': get_timestamp(),
                         '#date-end': get_timestamp(),
                         }
-                #print(" Uno to Dos=",direction_1_to_2)
                 print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",get_timestamp())
-                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
 
                 if direction_1_to_2 == 1:
@@ -438,9 +366,8 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-start': get_timestamp(),
                         '#date-end': get_timestamp(),
                         }
-                #print(" Dos to uno=",direction_2_to_1) 
                 print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",get_timestamp())
-                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
 
                 if direction_2_to_1 == 1:
@@ -462,15 +389,15 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
 
     return entradas, salidas
 
-def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, distance_plus_factor):
-
+def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance):
     # if we just detected 1 element, there is no need to calculate distances
-    #global dict_of_ids, distance_plus_factor, nfps
-    global dict_of_ids
+    # dict_of_ids
+    # distance_plus_factor = 'tolerated_distance' * 1.42
+    # nfps
+    global dict_of_ids, social_distance_url
+    distance_plus_factor = tolerated_distance * 1.42
 
     frame_count = get_frame_counter()
-    #camera_id = get_camera_mac_address()
-    srv_url = get_service_social_distance_url()
 
     # if dictionary has no elements, there is no need to check anything
     if len(dict_of_ids) > 0:
@@ -490,10 +417,9 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
                                 'related_id': inner_id,
                                 'alert_id': alert_id,
                                 }
-                        print(data, 'PUT', srv_url)
-                        x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url,))
+                        print(data, 'PUT', social_distance_url)
+                        x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
                         x.start()
-                        #send_json(data, 'PUT', srv_url)
 
                 # Now delete the id cause is no longer in sight
                 dict_of_ids.pop(key)
@@ -547,7 +473,7 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
                 distance = sqrt( ((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1)) )
 
                 # if distance is lower than the tolerated value we add the ID and treat it   
-                if distance < get_social_distance_parameter_value('tolerated_distance'):
+                if distance < tolerated_distance:
 
                     # before use the inner dictionary, check if there are ids we need to delete, so that we loop with less elements
                     if len(dict_of_ids) > 0:
@@ -581,10 +507,9 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
                                     'related_id': ids[i+j],
                                     'alert_id': alert_id,
                                     }
-                                print(data, 'POST', srv_url)
-                                x = threading.Thread(target=send_json, args=(data, 'POST', srv_url,))
+                                print(data, 'POST', social_distance_url)
+                                x = threading.Thread(target=send_json, args=(data, 'POST', social_distance_url,))
                                 x.start()
-                                #send_json(data, 'POST', srv_url)
                     else:
                         # add element if not exist on the dictonary
                         dict_of_ids[str(ids[i-1])]['inner_ids'].update(
@@ -604,15 +529,8 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
         i += 1
 
 
-set_outside_area()
-set_aforo_reference_line_coordinates()
-set_server_url()
-header = get_headers()
-nfps = get_number_of_frames_per_second()
+#nfps = get_number_of_frames_per_second()
 
 dict_of_ids = {}
 initial = {}
 last = {}
-counter_1_to_2 = 0
-counter_2_to_1 = 0
-
