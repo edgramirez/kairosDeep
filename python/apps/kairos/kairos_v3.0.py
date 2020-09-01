@@ -224,20 +224,79 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     l_frame = batch_meta.frame_meta_list
 
-    camera_id = get_camera_id(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index)
+    #====================== Definicion de valores de mensajes a pantalla
+    display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
+    current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
-    if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
+    camera_id = get_camera_id(current_pad_index)
+    is_aforo_enabled = get_aforo(current_pad_index, 'enabled')
+
+    # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
+    display_meta.num_labels = 1                            # numero de textos
+    py_nvosd_text_params = display_meta.text_params[0]
+
+    # Setup del label de impresion en pantalla
+    py_nvosd_text_params.x_offset = 100
+    py_nvosd_text_params.y_offset = 120
+    py_nvosd_text_params.font_params.font_name = "Arial"
+    py_nvosd_text_params.font_params.font_size = 10
+    py_nvosd_text_params.font_params.font_color.red = 1.0
+    py_nvosd_text_params.font_params.font_color.green = 1.0
+    py_nvosd_text_params.font_params.font_color.blue = 1.0
+    py_nvosd_text_params.font_params.font_color.alpha = 1.0
+    py_nvosd_text_params.set_bg_clr = 1
+    py_nvosd_text_params.text_bg_clr.red = 0.0
+    py_nvosd_text_params.text_bg_clr.green = 0.0
+    py_nvosd_text_params.text_bg_clr.blue = 0.0
+    py_nvosd_text_params.text_bg_clr.alpha = 1.0
+
+    if is_aforo_enabled:
         service.set_aforo_url(srv_url)
-        outside_area = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'outside_area')
-        reference_line = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'aforo_reference_line_coordinates')
-        aforo_line_width = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'line_width')
-        aforo_line_color = get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'line_color')
+        outside_area = get_aforo(current_pad_index, 'outside_area')
+        reference_line = get_aforo(current_pad_index, 'aforo_reference_line_coordinates')
+        aforo_line_width = get_aforo(current_pad_index, 'line_width')
+        aforo_line_color = get_aforo(current_pad_index, 'line_color')
 
-    if get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
+        #------------------------------------------- display info
+        display_meta.num_lines = 1      # numero de lineas
+        display_meta.num_rects = 1      # numero de rectangulos  
+        py_nvosd_line_params = display_meta.line_params[0]                
+        py_nvosd_rect_params = display_meta.rect_params[0]        
+
+        # Setup de la linea de Ent/Sal
+        # los valos de las coordenadas tienen que ser obtenidos del archivo de configuracion
+        # en este momento estan hardcode
+
+        py_nvosd_line_params.x1 = reference_line[0][0]
+        py_nvosd_line_params.y1 = reference_line[0][1]
+        py_nvosd_line_params.x2 = reference_line[1][0]
+        py_nvosd_line_params.y2 = reference_line[1][1]
+        py_nvosd_line_params.line_width = aforo_line_width
+        py_nvosd_line_params.line_color.red = aforo_line_color[0]
+        py_nvosd_line_params.line_color.green = aforo_line_color[1]
+        py_nvosd_line_params.line_color.blue = aforo_line_color[2]
+        py_nvosd_line_params.line_color.alpha = aforo_line_color[3]
+
+        # setup del rectangulo de Ent/Sal
+        # de igual manera que los parametros de linea,
+        # los valores del rectangulo se calculan en base a
+        # los valoes del archivo de configuracion
+
+        py_nvosd_rect_params.left = 500
+        py_nvosd_rect_params.height = 120
+        py_nvosd_rect_params.top = 680
+        py_nvosd_rect_params.width = 560
+        py_nvosd_rect_params.border_width = 4
+        py_nvosd_rect_params.border_color.red = 0.0
+        py_nvosd_rect_params.border_color.green = 0.0
+        py_nvosd_rect_params.border_color.blue = 1.0
+        py_nvosd_rect_params.border_color.alpha = 1.0
+
+    if get_social_distance(current_pad_index, 'enabled'):
         service.set_service_social_distance_url(srv_url)
         nfps = 19 # HARDCODED TILL GET THE REAL VALUE
-        risk_value = nfps * get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'persistence_time')
-        tolerated_distance = get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'tolerated_distance')
+        risk_value = nfps * get_social_distance(current_pad_index, 'persistence_time')
+        tolerated_distance = get_social_distance(current_pad_index, 'tolerated_distance')
 
     while l_frame is not None:
         try:
@@ -261,16 +320,14 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 break           
 
             obj_counter[obj_meta.class_id] += 1
-            x = int(obj_meta.rect_params.width) +  int(obj_meta.rect_params.left/2)
-            #x = obj_meta.rect_params.left
-            y = int(obj_meta.rect_params.height) + int(obj_meta.rect_params.top/2)
-            #y = obj_meta.rect_params.top
+            x = int(obj_meta.rect_params.width +  obj_meta.rect_params.left/2) #x = obj_meta.rect_params.left
+            y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) #y = obj_meta.rect_params.top
 
             # Service Aforo (in and out)
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
 
-            if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
+            if is_aforo_enabled:
                 entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line)
                 #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
             try: 
@@ -278,73 +335,15 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             except StopIteration:
                 break
 
-        if get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
+        if is_aforo_enabled:
+            py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
+        elif get_social_distance(current_pad_index, 'enabled'):
             boxes_length = len(boxes)
             if boxes_length > 1:
                 service.set_frame_counter(frame_number)
                 service.tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance)
-
-        #====================== Definicion de valores de mensajes a pantalla
-        display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
-    
-        # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
-        display_meta.num_labels = 1                            # numero de textos
-        py_nvosd_text_params = display_meta.text_params[0]
-        
-        # Setup del label de impresion en pantalla
-        py_nvosd_text_params.x_offset = 100
-        py_nvosd_text_params.y_offset = 120
-        py_nvosd_text_params.font_params.font_name = "Arial"
-        py_nvosd_text_params.font_params.font_size = 10
-        py_nvosd_text_params.font_params.font_color.red = 1.0
-        py_nvosd_text_params.font_params.font_color.green = 1.0
-        py_nvosd_text_params.font_params.font_color.blue = 1.0
-        py_nvosd_text_params.font_params.font_color.alpha = 1.0
-        py_nvosd_text_params.set_bg_clr = 1
-        py_nvosd_text_params.text_bg_clr.red = 0.0
-        py_nvosd_text_params.text_bg_clr.green = 0.0
-        py_nvosd_text_params.text_bg_clr.blue = 0.0
-        py_nvosd_text_params.text_bg_clr.alpha = 1.0
-        
-        if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
-            display_meta.num_lines = 1      # numero de lineas
-            display_meta.num_rects = 1      # numero de rectangulos  
-            py_nvosd_line_params = display_meta.line_params[0]                
-            py_nvosd_rect_params = display_meta.rect_params[0]        
-
-            # Setup de la linea de Ent/Sal
-            # los valos de las coordenadas tienen que ser obtenidos del archivo de configuracion
-            # en este momento estan hardcode
- 
-            py_nvosd_line_params.x1 = reference_line[0][0]
-            py_nvosd_line_params.y1 = reference_line[0][1]
-            py_nvosd_line_params.x2 = reference_line[1][0]
-            py_nvosd_line_params.y2 = reference_line[1][1]
-            py_nvosd_line_params.line_width = aforo_line_width
-            py_nvosd_line_params.line_color.red = aforo_line_color[0]
-            py_nvosd_line_params.line_color.green = aforo_line_color[1]
-            py_nvosd_line_params.line_color.blue = aforo_line_color[2]
-            py_nvosd_line_params.line_color.alpha = aforo_line_color[3]
-
-            # setup del rectangulo de Ent/Sal
-            # de igual manera que los parametros de linea, 
-            # los valores del rectangulo se calculan en base a
-            # los valoes del archivo de configuracion
-
-            py_nvosd_rect_params.left = 500
-            py_nvosd_rect_params.height = 120
-            py_nvosd_rect_params.top = 680
-            py_nvosd_rect_params.width = 560
-            py_nvosd_rect_params.border_width = 4
-            py_nvosd_rect_params.border_color.red = 0.0
-            py_nvosd_rect_params.border_color.green = 0.0
-            py_nvosd_rect_params.border_color.blue = 1.0
-            py_nvosd_rect_params.border_color.alpha = 1.0
-    
-        if get_aforo(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
-            py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
-        elif get_social_distance(pyds.NvDsFrameMeta.cast(l_frame.data).pad_index, 'enabled'):
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
+
         #====================== FIN de definicion de valores de mensajes a pantalla
 
         # Lo manda a directo streaming

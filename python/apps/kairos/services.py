@@ -332,19 +332,28 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
     else:
         last.update({object_id: area})
     if previous:
-        direction_1_to_2 = outside_area % 2
-        direction_2_to_1 = (outside_area + 1) % 2
+        if outside_area == 1:
+            direction_1_to_2 = 1
+            direction_2_to_1 = 0
+        else:
+            direction_1_to_2 = 0
+            direction_2_to_1 = 1
+
         elements_to_delete = set()
 
+        elements_to_delete_exists = False
         for item in last.keys():
+            if initial[item] == last[item]:
+                continue
             if initial[item] == 1 and last[item] == 2:
+                time_in_epoc = get_timestamp()
                 data = {
                         'direction': direction_1_to_2,
                         'camera-id': camera_id,
-                        '#date-start': get_timestamp(),
-                        '#date-end': get_timestamp(),
+                        '#date-start': time_in_epoc,
+                        '#date-end': time_in_epoc,
                         }
-                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",get_timestamp())
+                #print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",get_timestamp())
                 x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
 
@@ -355,18 +364,21 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
 
                 if item not in ids:
                     elements_to_delete.add(item)
+                    if not elements_to_delete_exists:
+                        elements_to_delete_exists = True
                     initial.pop(item)
                 else:
                     initial.update({item: 2})
 
             elif initial[item] == 2 and last[item] == 1:
+                time_in_epoc = get_timestamp()
                 data = {
                         'direction': direction_2_to_1,
                         'camera-id': camera_id,
-                        '#date-start': get_timestamp(),
-                        '#date-end': get_timestamp(),
+                        '#date-start': time_in_epoc,
+                        '#date-end': time_in_epoc,
                         }
-                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",get_timestamp())
+                #print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",get_timestamp())
                 x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
 
@@ -377,13 +389,16 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
 
                 if item not in ids:
                     elements_to_delete.add(item)
+                    if not elements_to_delete_exists:
+                        elements_to_delete_exists = True
                     initial.pop(item)
                 else:
                     initial.update({item: 1})
 
         # deleting elements that are no longer present in the list of ids
-        for item in elements_to_delete:
-            last.pop(item)
+        if elements_to_delete_exists:
+            for item in elements_to_delete:
+                last.pop(item)
     else:
         previous = True
 
@@ -527,9 +542,6 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
         if i == (boxes_length - 2):
             break
         i += 1
-
-
-#nfps = get_number_of_frames_per_second()
 
 dict_of_ids = {}
 initial = {}
