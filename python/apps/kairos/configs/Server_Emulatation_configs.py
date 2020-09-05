@@ -16,7 +16,7 @@ config = {
                 'aforo': {
                     'enabled': True,
                     'outside_area': 1, 
-                    'aforo_reference_line_coordinates': [(510, 700), (1100, 700)], 
+                    'aforo_reference_line_coordinates': [(510, 730), (1100, 730)], 
                     'line_width': 5,
                     'line_color': [1, 1, 1, 1],
                     },
@@ -27,7 +27,7 @@ config = {
                 'aforo': {
                     'enabled': True,
                     'outside_area': 1, 
-                    'aforo_reference_line_coordinates': [(510, 700), (1100, 700)], 
+                    'aforo_reference_line_coordinates': [(510, 730), (1100, 730)], 
                     'line_width': 5,
                     'line_color': [1, 1, 1, 1],
                     },
