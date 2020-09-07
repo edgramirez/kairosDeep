@@ -27,11 +27,6 @@ global social_distance_enabled
 global aforo_url
 global social_distance_url
 
-global salidas
-global entradas
-
-salidas = 0
-entradas = 0
 
 previous = False
 first_time_set = set()
@@ -125,7 +120,6 @@ def get_supported_actions():
 
 def get_timestamp():
     return int(time.time() * 1000)
-    #return int(time.time())
 
 
 # Return true if line segments AB and CD intersect
@@ -309,7 +303,7 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
+def aforo(box, object_id, ids, camera_id, outside_area, referece_line, entradas, salidas):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -321,16 +315,18 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
     This function needs to check that is a previous value of the evalueated ID + x,y coordinates
     If the ID has not previously been register the function just store the current values
     '''
-    global entradas, salidas, previous, aforo_url
+    global previous, aforo_url
 
     if check_if_object_is_in_area2(box, referece_line):
         area = 2
     else:
         area = 1
+
     if object_id not in initial:
         initial.update({object_id: area})
     else:
         last.update({object_id: area})
+
     if previous:
         if outside_area == 1:
             direction_1_to_2 = 1
@@ -353,7 +349,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-start': time_in_epoc,
                         '#date-end': time_in_epoc,
                         }
-                #print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",get_timestamp())
+                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",time_in_epoc)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
 
@@ -378,7 +374,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line):
                         '#date-start': time_in_epoc,
                         '#date-end': time_in_epoc,
                         }
-                #print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",get_timestamp())
+                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",time_in_epoc)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
 

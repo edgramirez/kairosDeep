@@ -96,9 +96,13 @@ global aforo_list
 global social_distance_list
 global people_counting_list
 global camera_list
+global source_list
 global srv_url
 global token_file
+global entradas_salidas
 
+source_list = []
+entradas_salidas = []
 
 def set_people_counting(value=None):
     global people_counting_list
@@ -156,6 +160,16 @@ def set_camera(value=None):
         camera_list.append(value)
 
 
+def set_sources(value):
+    global source_list
+    source_list.append(value)
+
+
+def get_sources():
+    global source_list
+    return source_list
+
+
 def get_camera_id(index = None):
     global camera_list
     if index is None:
@@ -174,6 +188,26 @@ def set_token(token_file_name):
     token_file = token_file_name
 
 
+def set_number_of_resources(num):
+    global number_of_resources
+    number_of_resources = num
+
+
+def set_entrada_salida(entrada, salida, index = None):
+    global entradas_salidas
+    if index is None:
+        entradas_salidas.append([entrada, salida])
+    else:
+        entradas_salidas[index] = [entrada, salida]
+        #print('SSSSSet with index',index, entrada, salida, entradas_salidas)
+
+
+def get_entrada_salida(index):
+    global entradas_salidas
+    #print('get with index', index, entradas_salidas[index][0], entradas_salidas[index][1])
+    return entradas_salidas[index][0], entradas_salidas[index][1]
+
+
 def emulate_reading_from_server():
     from configs.Server_Emulatation_configs import config as scfg
 
@@ -182,17 +216,23 @@ def emulate_reading_from_server():
     set_social_distance()
     set_aforo()
     set_camera()
+
     set_server_url(scfg['server']['url'])
     set_token(scfg['server']['token_file'])
+    set_number_of_resources(len(scfg['cameras']))
+
     for camera in scfg['cameras'].keys():
         set_camera(camera)
-        for service in scfg['cameras'][camera].keys():
-            if service == 'aforo':
-                set_aforo(scfg['cameras'][camera]['aforo'])
-            elif service == 'people_counting':
-                set_people_counting(scfg['cameras'][camera][service])
-            elif service == 'social_distance':
-                set_social_distance(scfg['cameras'][camera][service])
+        for key in scfg['cameras'][camera].keys():
+            if key == 'source':
+                set_sources(scfg['cameras'][camera][key])
+            elif key == 'aforo':
+                set_aforo(scfg['cameras'][camera][key])
+                set_entrada_salida(0, 0)
+            elif key == 'people_counting':
+                set_people_counting(scfg['cameras'][camera][key])
+            elif key == 'social_distance':
+                set_social_distance(scfg['cameras'][camera][key])
 
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
@@ -202,9 +242,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     global srv_url
     global token_file
     service.set_header(token_file)
-
-    entrada = 0
-    salida = 0
 
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
@@ -320,7 +357,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 break           
 
             obj_counter[obj_meta.class_id] += 1
-            x = int(obj_meta.rect_params.width +  obj_meta.rect_params.left/2) #x = obj_meta.rect_params.left
+            x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2) #x = obj_meta.rect_params.left
             y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) #y = obj_meta.rect_params.top
 
             # Service Aforo (in and out)
@@ -328,7 +365,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             boxes.append((x, y))
 
             if is_aforo_enabled:
-                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line)
+                entrada, salida = get_entrada_salida(current_pad_index)
+                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, entrada, salida)
+                #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
+                set_entrada_salida(entrada, salida, current_pad_index)
                 #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
             try: 
                 l_obj = l_obj.next
@@ -336,6 +376,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 break
 
         if is_aforo_enabled:
+            entrada, salida = get_entrada_salida(current_pad_index)
             py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
         elif get_social_distance(current_pad_index, 'enabled'):
             boxes_length = len(boxes)
@@ -418,20 +459,16 @@ def create_source_bin(index, uri):
     return nbin
 
 
-def main(args):
+def main():
     # Check input arguments
     # Permite introducir un numero x de fuentes, en nuestro caso streamings delas camaras Meraki        
     emulate_reading_from_server()    
-    number_sources = len(args)-1    
 
-    if number_sources+1 < 2:
-        sys.stderr.write("usage: %s <uri1> [uri2] ... [uriN]\n" % args[0])
-        sys.exit(1)
+    number_sources = len(get_sources()) 
 
     # Variable para verificar si al menos un video esta vivo
     is_live = False
 
-    
     for i in range(0, number_sources):
         fps_streams["stream{0}".format(i)] = GETFPS(i)
         
@@ -458,10 +495,10 @@ def main(args):
     pipeline.add(streammux)
     
     # Se crea elemento que acepta todo tipo de video o RTSP
-    for i in range(number_sources):
-
+    i = 0
+    for source in get_sources():
         print("Creating source_bin...........", i, " \n ")
-        uri_name = args[i+1]
+        uri_name = source
 
         if uri_name.find("rtsp://") == 0:
             print('is_alive_TRUE')
@@ -479,13 +516,13 @@ def main(args):
         if not sinkpad:
             sys.stderr.write("Unable to create sink pad bin \n")
 
-
         srcpad = source_bin.get_static_pad("src")
 
         if not srcpad:
             sys.stderr.write("Unable to create src pad bin \n")
 
         srcpad.link(sinkpad)
+        i += 1
     
     # el video con RTSP para Meraki viene optimizado a H264, por lo que no debe ser necesario crear un elemento h264parser stream
     # print("Creating H264Parser \n")
@@ -714,4 +751,5 @@ def main(args):
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    sys.exit(main())
+    #sys.exit(main(sys.argv))
