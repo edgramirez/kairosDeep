@@ -100,9 +100,35 @@ global source_list
 global srv_url
 global token_file
 global entradas_salidas
+global initial_last_disappeared
 
+initial_last_disappeared = []
 source_list = []
 entradas_salidas = []
+
+
+def set_initial_last_disappeared():
+    global initial_last_disappeared
+    initial_last_disappeared.append([{}, {}, []])
+
+
+def get_initial_last(index):
+    global initial_last_disappeared
+    return initial_last_disappeared[index][0], initial_last_disappeared[index][1]
+
+
+def set_disappeared(index, value = None):
+    global initial_last_disappeared
+    if value is None:
+        initial_last_disappeared[index][2] = []
+    else:
+        initial_last_disappeared[index][2] = value
+
+
+def get_disappeared(index):
+    global initial_last_disappeared
+    return initial_last_disappeared[index][2]
+
 
 def set_people_counting(value=None):
     global people_counting_list
@@ -228,6 +254,7 @@ def emulate_reading_from_server():
                 set_sources(scfg['cameras'][camera][key])
             elif key == 'aforo':
                 set_aforo(scfg['cameras'][camera][key])
+                set_initial_last_disappeared()
                 set_entrada_salida(0, 0)
             elif key == 'people_counting':
                 set_people_counting(scfg['cameras'][camera][key])
@@ -319,10 +346,15 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         # los valores del rectangulo se calculan en base a
         # los valoes del archivo de configuracion
 
-        py_nvosd_rect_params.left = 500
-        py_nvosd_rect_params.height = 120
-        py_nvosd_rect_params.top = 680
-        py_nvosd_rect_params.width = 560
+        TopRightx = 400
+        TopRighty = 360
+        BottonLeftx = 1150
+        BottonLefty = 470
+
+        py_nvosd_rect_params.left = TopRightx
+        py_nvosd_rect_params.height = 100
+        py_nvosd_rect_params.top = TopRighty
+        py_nvosd_rect_params.width = 750
         py_nvosd_rect_params.border_width = 4
         py_nvosd_rect_params.border_color.red = 0.0
         py_nvosd_rect_params.border_color.green = 0.0
@@ -364,9 +396,11 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
 
-            if is_aforo_enabled:
+            #if is_aforo_enabled:
+            if is_aforo_enabled and x > TopRightx and x < BottonLeftx and y < BottonLefty and y > TopRighty:
                 entrada, salida = get_entrada_salida(current_pad_index)
-                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, entrada, salida)
+                initial, last = get_initial_last(current_pad_index)
+                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, initial, last, entrada, salida)
                 #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
                 set_entrada_salida(entrada, salida, current_pad_index)
                 #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
@@ -378,13 +412,31 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         if is_aforo_enabled:
             entrada, salida = get_entrada_salida(current_pad_index)
             py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
+
+            '''
+            Este bloque limpia los dictionarios initial y last, recolectando los ID que 
+            no ya estan en la lista actual, es decir, "candidatos a ser borrados" y 
+            despues es una segunda corroboracion borrandolos
+            '''
+            if frame_number % 50 == 0:
+                disappeared = get_disappeared(current_pad_index)
+                if disappeared:
+                    elements_to_delete = [ key for key in last.keys() if key not in ids and key in disappeared ]
+                    for x in elements_to_delete:
+                        last.pop(x)
+                        initial.pop(x)
+                    set_disappeared(current_pad_index)
+                else:
+                    elements_to_delete = [ key for key in last.keys() if key not in ids ]
+                    set_disappeared(current_pad_index, elements_to_delete)
+
+                disappeared = elements_to_delete
         elif get_social_distance(current_pad_index, 'enabled'):
             boxes_length = len(boxes)
             if boxes_length > 1:
                 service.set_frame_counter(frame_number)
                 service.tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance)
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
-
         #====================== FIN de definicion de valores de mensajes a pantalla
 
         # Lo manda a directo streaming
@@ -395,6 +447,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             l_frame = l_frame.next
         except StopIteration:
             break
+
     return Gst.PadProbeReturn.OK	
 
 

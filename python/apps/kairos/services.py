@@ -13,11 +13,8 @@ from datetime import datetime
 
 global first_time_set
 global last_time_set
-global mac_address
-global reference_line_coordinates
 global header
 global server_url
-global previous
 global sd_keys
 global frame_count
 global nfps
@@ -28,7 +25,6 @@ global aforo_url
 global social_distance_url
 
 
-previous = False
 first_time_set = set()
 last_time_set = set()
 
@@ -205,6 +201,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id, outside_area):
     direction_1_to_2 = outside_area % 2
     direction_2_to_1 = outside_area + 1 % 2
 
+    # se evaluan los elementos en last asi se garantiza que ese ID tiene al menos un registro en el dictionario "initial" y al menos uno en "last"
     for item in last.keys():
         if item not in ids:
             if initial[item] == 1 and last[item] == 2:
@@ -231,6 +228,7 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id, outside_area):
                 print('Out sending_json........', item, direction_2_to_1)
                 x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
                 x.start()
+
             initial.pop(item)
             elements_to_delete.add(item)
 
@@ -303,7 +301,7 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, camera_id, outside_area, referece_line, entradas, salidas):
+def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, last, entradas, salidas):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -312,11 +310,9 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, entradas,
     x = box[0]
     y = box[1]
 
-    This function needs to check that is a previous value of the evalueated ID + x,y coordinates
-    If the ID has not previously been register the function just store the current values
+    initial -  must be a dictionary, and will be used to store the first position (area 1 or area2) of a given ID
+    last -     must be a dictionary, and will be used to store the last position (area 1 or area2) of a given ID
     '''
-    global previous, aforo_url
-
     if check_if_object_is_in_area2(box, referece_line):
         area = 2
     else:
@@ -324,79 +320,62 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, entradas,
 
     if object_id not in initial:
         initial.update({object_id: area})
+        if object_id not in last:
+            return entradas, salidas
     else:
         last.update({object_id: area})
 
-    if previous:
-        if outside_area == 1:
-            direction_1_to_2 = 1
-            direction_2_to_1 = 0
-        else:
-            direction_1_to_2 = 0
-            direction_2_to_1 = 1
+    # De igual forma si los elementos continen las misma areas en el estado actual que en el previo, entonces no tiene caso evaluar mas
+    if initial[object_id] == last[object_id]:
+        return entradas, salidas
 
-        elements_to_delete = set()
+    global aforo_url
 
-        elements_to_delete_exists = False
-        for item in last.keys():
-            if initial[item] == last[item]:
-                continue
-            if initial[item] == 1 and last[item] == 2:
-                time_in_epoc = get_timestamp()
-                data = {
-                        'direction': direction_1_to_2,
-                        'camera-id': camera_id,
-                        '#date-start': time_in_epoc,
-                        '#date-end': time_in_epoc,
-                        }
-                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",time_in_epoc)
-                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
-                x.start()
-
-                if direction_1_to_2 == 1:
-                    entradas += 1
-                else:
-                    salidas += 1
-
-                if item not in ids:
-                    elements_to_delete.add(item)
-                    if not elements_to_delete_exists:
-                        elements_to_delete_exists = True
-                    initial.pop(item)
-                else:
-                    initial.update({item: 2})
-
-            elif initial[item] == 2 and last[item] == 1:
-                time_in_epoc = get_timestamp()
-                data = {
-                        'direction': direction_2_to_1,
-                        'camera-id': camera_id,
-                        '#date-start': time_in_epoc,
-                        '#date-end': time_in_epoc,
-                        }
-                print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",time_in_epoc)
-                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
-                x.start()
-
-                if direction_2_to_1 == 1:
-                    entradas += 1
-                else:
-                    salidas += 1
-
-                if item not in ids:
-                    elements_to_delete.add(item)
-                    if not elements_to_delete_exists:
-                        elements_to_delete_exists = True
-                    initial.pop(item)
-                else:
-                    initial.update({item: 1})
-
-        # deleting elements that are no longer present in the list of ids
-        if elements_to_delete_exists:
-            for item in elements_to_delete:
-                last.pop(item)
+    if outside_area == 1:
+        direction_1_to_2 = 1
+        direction_2_to_1 = 0
     else:
-        previous = True
+        direction_1_to_2 = 0
+        direction_2_to_1 = 1
+
+    for item in last.keys():
+        if initial[item] == 1 and last[item] == 2:
+            time_in_epoc = get_timestamp()
+            data = {
+                    'direction': direction_1_to_2,
+                    'camera-id': camera_id,
+                    '#date-start': time_in_epoc,
+                    '#date-end': time_in_epoc,
+                    }
+            initial.update({item: 2})
+
+            print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",time_in_epoc)
+            x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
+            x.start()
+
+            if direction_1_to_2 == 1:
+                entradas += 1
+            else:
+                salidas += 1
+
+        elif initial[item] == 2 and last[item] == 1:
+            time_in_epoc = get_timestamp()
+            data = {
+                    'direction': direction_2_to_1,
+                    'camera-id': camera_id,
+                    '#date-start': time_in_epoc,
+                    '#date-end': time_in_epoc,
+                    }
+            initial.update({item: 1})
+
+            print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",time_in_epoc)
+            x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
+            x.start()
+
+            if direction_2_to_1 == 1:
+                entradas += 1
+            else:
+                salidas += 1
 
     return entradas, salidas
 
@@ -540,5 +519,3 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
         i += 1
 
 dict_of_ids = {}
-initial = {}
-last = {}
