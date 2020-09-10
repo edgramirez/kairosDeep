@@ -225,12 +225,10 @@ def set_entrada_salida(entrada, salida, index = None):
         entradas_salidas.append([entrada, salida])
     else:
         entradas_salidas[index] = [entrada, salida]
-        #print('SSSSSet with index',index, entrada, salida, entradas_salidas)
 
 
 def get_entrada_salida(index):
     global entradas_salidas
-    #print('get with index', index, entradas_salidas[index][0], entradas_salidas[index][1])
     return entradas_salidas[index][0], entradas_salidas[index][1]
 
 
@@ -318,6 +316,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         service.set_aforo_url(srv_url)
         outside_area = get_aforo(current_pad_index, 'outside_area')
         reference_line = get_aforo(current_pad_index, 'aforo_reference_line_coordinates')
+        area_of_interest = get_aforo(current_pad_index, 'aforo_area_of_interest')
         aforo_line_width = get_aforo(current_pad_index, 'line_width')
         aforo_line_color = get_aforo(current_pad_index, 'line_color')
 
@@ -341,20 +340,23 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         py_nvosd_line_params.line_color.blue = aforo_line_color[2]
         py_nvosd_line_params.line_color.alpha = aforo_line_color[3]
 
-        # setup del rectangulo de Ent/Sal
-        # de igual manera que los parametros de linea,
-        # los valores del rectangulo se calculan en base a
-        # los valoes del archivo de configuracion
+        '''
+        # setup del rectangulo de Ent/Sal                        #Leftx------------------------------Topy
+        # de igual manera que los parametros de linea,           |                                      | 
+        # los valores del rectangulo se calculan en base a       |                                      |
+        # los valoes del archivo de configuracion                v                                      |
+        #                                                        #Height -------------------------> Width
+        '''
 
-        TopRightx = 400
-        TopRighty = 360
-        BottonLeftx = 1150
-        BottonLefty = 470
+        Topy = area_of_interest['top']
+        Leftx = area_of_interest['left']
+        Height = area_of_interest['height']
+        Width = area_of_interest['width']
 
-        py_nvosd_rect_params.left = TopRightx
-        py_nvosd_rect_params.height = 100
-        py_nvosd_rect_params.top = TopRighty
-        py_nvosd_rect_params.width = 750
+        py_nvosd_rect_params.left = Leftx
+        py_nvosd_rect_params.height = Height
+        py_nvosd_rect_params.top = Topy
+        py_nvosd_rect_params.width = Width
         py_nvosd_rect_params.border_width = 4
         py_nvosd_rect_params.border_color.red = 0.0
         py_nvosd_rect_params.border_color.green = 0.0
@@ -397,7 +399,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             boxes.append((x, y))
 
             #if is_aforo_enabled:
-            if is_aforo_enabled and x > TopRightx and x < BottonLeftx and y < BottonLefty and y > TopRighty:
+            if is_aforo_enabled and x > Leftx and x < (Leftx + Width) and y < (Topy + Height) and y > Topy:
                 entrada, salida = get_entrada_salida(current_pad_index)
                 initial, last = get_initial_last(current_pad_index)
                 entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, initial, last, entrada, salida)
@@ -420,6 +422,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             '''
             if frame_number % 50 == 0:
                 disappeared = get_disappeared(current_pad_index)
+                initial, last = get_initial_last(current_pad_index)
                 if disappeared:
                     elements_to_delete = [ key for key in last.keys() if key not in ids and key in disappeared ]
                     for x in elements_to_delete:
