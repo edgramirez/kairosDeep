@@ -4,7 +4,8 @@ config = {
             'token_file': '.token',
             },
         'cameras': {
-            'DTevar-culhuacan-34:56:fe:22:22:22': {
+            'DTevar-culhuacan-34:56:fe:22:22:22': 
+                {
                 'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
                 'aforo': {
                     'enabled': True,
@@ -21,14 +22,11 @@ config = {
         }
 
 
-
-
-
-
-
-
-
 '''
+                'source' es un campo obligorio y no puede faltar en cada una de las camaras
+
+
+
                 'source': 'file:///media/edgar/external_sdcard/MV12_Ent_Sal_20Agst2020ERM.mp4',
                 'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
             'DTevar-culhuacan-34:56:fe:a3:99:de': {

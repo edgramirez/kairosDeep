@@ -379,8 +379,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, 
 
     return entradas, salidas
 
-def get_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance):
-    # dict_of_ids
+def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, dict_of_ids):
     # distance_plus_factor = 'tolerated_distance' * 1.42
     # nfps
     global social_distance_url
@@ -520,4 +519,4 @@ def get_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, t
             break
         i += 1
 
-dict_of_ids = {}
+#dict_of_ids = {}

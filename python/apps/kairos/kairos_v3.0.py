@@ -101,33 +101,45 @@ global srv_url
 global token_file
 global entradas_salidas
 global initial_last_disappeared
+global dict_of_ids_list
 
-initial_last_disappeared = []
+initial_last_disappeared = {}
 source_list = []
-entradas_salidas = []
+entradas_salidas = {}
+dict_of_ids_list = {}
 
 
-def set_initial_last_disappeared():
+def set_social_distance_dict_of_ids(key_id):
+    global dict_of_ids_list
+    dict_of_ids_list.update({key_id: {}})
+
+
+def get_socialt_distance_dict_of_ids(key_id):
+    global dict_of_ids_list
+    return dict_of_ids_list[key_id]
+
+
+def set_initial_last_disappeared(key_id):
     global initial_last_disappeared
-    initial_last_disappeared.append([{}, {}, []])
+    initial_last_disappeared.update({key_id: [{}, {}, []]})
 
 
-def get_initial_last(index):
+def get_initial_last(key_id):
     global initial_last_disappeared
-    return initial_last_disappeared[index][0], initial_last_disappeared[index][1]
+    return initial_last_disappeared[key_id][0], initial_last_disappeared[key_id][1]
 
 
-def set_disappeared(index, value = None):
+def set_disappeared(key_id, value = None):
     global initial_last_disappeared
     if value is None:
-        initial_last_disappeared[index][2] = []
+        initial_last_disappeared[key_id][2] = []
     else:
-        initial_last_disappeared[index][2] = value
+        initial_last_disappeared[key_id][2] = value
 
 
-def get_disappeared(index):
+def get_disappeared(key_id):
     global initial_last_disappeared
-    return initial_last_disappeared[index][2]
+    return initial_last_disappeared[key_id][2]
 
 
 def set_people_counting(value=None):
@@ -146,36 +158,36 @@ def get_people_counting(index = None, key = None):
         return people_counting_list[index][key]
 
 
-def set_social_distance(value=None):
+def set_social_distance(key_id = None, value=None):
     global social_distance_list
-    if value is None:
-        social_distance_list = []
+    if key_id is None:
+        social_distance_list = {}
     else:
-        social_distance_list.append(value)
+        social_distance_list.update({key_id: value})
 
 
-def get_social_distance(index = None, key = None):
+def get_social_distance(key_id, key = None):
     global social_distance_list
-    if index is None:
+    if key_id is None:
         return social_distance_list
     else:
-        return social_distance_list[index][key]
+        return social_distance_list[key_id][key]
 
 
-def set_aforo(value=None):
+def set_aforo(key = None, value = None):
     global aforo_list
-    if value is None:
-        aforo_list = []
+    if key is None:
+        aforo_list = {}
     else:
-        aforo_list.append(value)
+        aforo_list.update({key: value})
 
 
-def get_aforo(index = None, key = None):
+def get_aforo(mainkey = None, key = None):
     global aforo_list
-    if index is None:
+    if mainkey is None:
         return aforo_list
     else:
-        return aforo_list[index][key]
+        return aforo_list[mainkey][key]
 
 
 def set_camera(value=None):
@@ -219,17 +231,14 @@ def set_number_of_resources(num):
     number_of_resources = num
 
 
-def set_entrada_salida(entrada, salida, index = None):
+def set_entrada_salida(key_id, entrada, salida):
     global entradas_salidas
-    if index is None:
-        entradas_salidas.append([entrada, salida])
-    else:
-        entradas_salidas[index] = [entrada, salida]
+    entradas_salidas.update({key_id: [entrada, salida]})
 
 
-def get_entrada_salida(index):
+def get_entrada_salida(key_id):
     global entradas_salidas
-    return entradas_salidas[index][0], entradas_salidas[index][1]
+    return entradas_salidas[key_id][0], entradas_salidas[key_id][1]
 
 
 def emulate_reading_from_server():
@@ -251,13 +260,14 @@ def emulate_reading_from_server():
             if key == 'source':
                 set_sources(scfg['cameras'][camera][key])
             elif key == 'aforo':
-                set_aforo(scfg['cameras'][camera][key])
-                set_initial_last_disappeared()
-                set_entrada_salida(0, 0)
+                set_aforo(camera, scfg['cameras'][camera][key])
+                set_initial_last_disappeared(camera)
+                set_entrada_salida(camera, 0, 0)
             elif key == 'people_counting':
                 set_people_counting(scfg['cameras'][camera][key])
             elif key == 'social_distance':
-                set_social_distance(scfg['cameras'][camera][key])
+                set_social_distance(camera, scfg['cameras'][camera][key])
+                set_social_distance_dict_of_ids(camera)
 
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
@@ -291,8 +301,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
     camera_id = get_camera_id(current_pad_index)
-    is_aforo_enabled = get_aforo(current_pad_index, 'enabled')
-    is_social_distance_enabled = get_social_distance(current_pad_index, 'enabled')
+    is_aforo_enabled = get_aforo(camera_id, 'enabled')
+    is_social_distance_enabled = get_social_distance(camera_id, 'enabled')
 
     # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
     display_meta.num_labels = 1                            # numero de textos
@@ -315,11 +325,11 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     if is_aforo_enabled:
         service.set_aforo_url(srv_url)
-        outside_area = get_aforo(current_pad_index, 'outside_area')
-        reference_line = get_aforo(current_pad_index, 'aforo_reference_line_coordinates')
-        area_of_interest = get_aforo(current_pad_index, 'aforo_area_of_interest')
-        aforo_line_width = get_aforo(current_pad_index, 'line_width')
-        aforo_line_color = get_aforo(current_pad_index, 'line_color')
+        outside_area = get_aforo(camera_id, 'outside_area')
+        reference_line = get_aforo(camera_id, 'aforo_reference_line_coordinates')
+        area_of_interest = get_aforo(camera_id, 'aforo_area_of_interest')
+        aforo_line_width = get_aforo(camera_id, 'line_width')
+        aforo_line_color = get_aforo(camera_id, 'line_color')
 
         #------------------------------------------- display info
         display_meta.num_lines = 1      # numero de lineas
@@ -367,8 +377,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     if is_social_distance_enabled:
         service.set_social_distance_url(srv_url)
         nfps = 19 # HARDCODED TILL GET THE REAL VALUE
-        risk_value = nfps * get_social_distance(current_pad_index, 'persistence_time')
-        tolerated_distance = get_social_distance(current_pad_index, 'tolerated_distance')
+        risk_value = nfps * get_social_distance(camera_id, 'persistence_time')
+        tolerated_distance = get_social_distance(camera_id, 'tolerated_distance')
 
     while l_frame is not None:
         try:
@@ -401,11 +411,11 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
             #if is_aforo_enabled:
             if is_aforo_enabled and x > Leftx and x < (Leftx + Width) and y < (Topy + Height) and y > Topy:
-                entrada, salida = get_entrada_salida(current_pad_index)
-                initial, last = get_initial_last(current_pad_index)
+                entrada, salida = get_entrada_salida(camera_id)
+                initial, last = get_initial_last(camera_id)
                 entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, initial, last, entrada, salida)
                 #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
-                set_entrada_salida(entrada, salida, current_pad_index)
+                set_entrada_salida(camera_id, entrada, salida)
                 #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
             try: 
                 l_obj = l_obj.next
@@ -413,7 +423,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 break
 
         if is_aforo_enabled:
-            entrada, salida = get_entrada_salida(current_pad_index)
+            entrada, salida = get_entrada_salida(camera_id)
             py_nvosd_text_params.display_text = "AFORO Source ID={} Source Number={} Person_count={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
 
             '''
@@ -422,17 +432,17 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             despues es una segunda corroboracion borrandolos
             '''
             if frame_number % 50 == 0:
-                disappeared = get_disappeared(current_pad_index)
-                initial, last = get_initial_last(current_pad_index)
+                disappeared = get_disappeared(camera_id)
+                initial, last = get_initial_last(camera_id)
                 if disappeared:
                     elements_to_delete = [ key for key in last.keys() if key not in ids and key in disappeared ]
                     for x in elements_to_delete:
                         last.pop(x)
                         initial.pop(x)
-                    set_disappeared(current_pad_index)
+                    set_disappeared(camera_id)
                 else:
                     elements_to_delete = [ key for key in last.keys() if key not in ids ]
-                    set_disappeared(current_pad_index, elements_to_delete)
+                    set_disappeared(camera_id, elements_to_delete)
 
                 disappeared = elements_to_delete
 
@@ -440,7 +450,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             boxes_length = len(boxes) # if only 1 object is present there is no need to calculate the distance
             if boxes_length > 1:
                 service.set_frame_counter(frame_number)
-                service.get_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance)
+                service.evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, get_socialt_distance_dict_of_ids(camera_id))
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
         #====================== FIN de definicion de valores de mensajes a pantalla
 
