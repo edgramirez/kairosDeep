@@ -292,6 +292,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     camera_id = get_camera_id(current_pad_index)
     is_aforo_enabled = get_aforo(current_pad_index, 'enabled')
+    is_social_distance_enabled = get_social_distance(current_pad_index, 'enabled')
 
     # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
     display_meta.num_labels = 1                            # numero de textos
@@ -363,8 +364,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         py_nvosd_rect_params.border_color.blue = 1.0
         py_nvosd_rect_params.border_color.alpha = 1.0
 
-    if get_social_distance(current_pad_index, 'enabled'):
-        service.set_service_social_distance_url(srv_url)
+    if is_social_distance_enabled:
+        service.set_social_distance_url(srv_url)
         nfps = 19 # HARDCODED TILL GET THE REAL VALUE
         risk_value = nfps * get_social_distance(current_pad_index, 'persistence_time')
         tolerated_distance = get_social_distance(current_pad_index, 'tolerated_distance')
@@ -434,11 +435,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     set_disappeared(current_pad_index, elements_to_delete)
 
                 disappeared = elements_to_delete
-        elif get_social_distance(current_pad_index, 'enabled'):
-            boxes_length = len(boxes)
+
+        if is_social_distance_enabled:
+            boxes_length = len(boxes) # if only 1 object is present there is no need to calculate the distance
             if boxes_length > 1:
                 service.set_frame_counter(frame_number)
-                service.tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance)
+                service.get_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance)
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
         #====================== FIN de definicion de valores de mensajes a pantalla
 

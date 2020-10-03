@@ -41,7 +41,7 @@ def set_aforo_url(srv_url):
     aforo_url = srv_url + 'tx/video-people.endpoint'
 
 
-def set_service_social_distance_url(srv_url):
+def set_social_distance_url(srv_url):
     global social_distance_url
     social_distance_url = srv_url + '/SERVICE_NOT_DEFINED_'
 
@@ -379,19 +379,19 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, 
 
     return entradas, salidas
 
-def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance):
-    # if we just detected 1 element, there is no need to calculate distances
+def get_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance):
     # dict_of_ids
     # distance_plus_factor = 'tolerated_distance' * 1.42
     # nfps
-    global dict_of_ids, social_distance_url
+    global social_distance_url
     distance_plus_factor = tolerated_distance * 1.42
-
     frame_count = get_frame_counter()
+
+    # This is the cleanup segment and 
 
     # if dictionary has no elements, there is no need to check anything
     if len(dict_of_ids) > 0:
-        # get the subset of ids that desapear: the ones that are in the current detected ids but no in the dictionary list
+        # get the subset of ids that disappear: the ones that are in the current detected ids but no in the dictionary list
         ids_in_dict_not_in_ids = set(dict_of_ids.keys()) - set(ids)
         dict_of_ids_subset = {key_: value for key_, value in dict_of_ids.items() if key_ in ids_in_dict_not_in_ids}
 
@@ -419,21 +419,23 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
                 else:
                     dict_of_ids_subset[key]['consecutive_absence'] = 1
     '''
-    take un element and compares it with the ones in front of it, to avoid repetition of convinations
+    takes one element and compares it with the others in front of it, to avoid repetition of combinations
     (A, B, C, D)
        AB AC AD
           BC CD
+
+    We are going to start compararing the first element (index=0 or i=0)
     '''
     i = 1
     for box in boxes:
-        # add element if not exist on the dictonary
+        # add element if not exist in the dictonary
         if str(ids[i-1]) in dict_of_ids.keys():
             dict_of_ids[str(ids[i-1])]['visible'] += 1
         else:
             dict_of_ids.update(
                         {
                         str(ids[i-1]): {
-                            'visible': 1, 
+                            'visible': 1,
                             'consecutive_absence': 0, 
                             'inner_ids': {},
                             'reported_in_frame': False,
@@ -445,7 +447,7 @@ def tracked_on_time_social_distance(boxes, ids, boxes_length, camera_id, nfps, r
         for inner_box in boxes[i:]:
             '''
             distance_per_factor = tolerated_distance * sqt(2)
-            If the addition of the sides of a triangle is greater thant the "distance_per_factor" that element is far from the radio or hipotenous
+            If the addition of the sides of a triangle is greater thant the "distance_per_factor" that element is far from the radio or hypotenous
             and so is not close enough to break the rule
             In the contrary we check if lower and then make a full analysis of the distances
             '''
