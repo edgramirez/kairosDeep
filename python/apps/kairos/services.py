@@ -146,6 +146,26 @@ def ccw(A,B,C):
     return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
 
 
+def is_point_insde_polygon(x, y, polygon_length, polygon):
+
+    p1x,p1y = polygon[0]
+    for i in range(polygon_length+1):
+        p2x,p2y = polygon[i % polygon_length]
+        if y > min(p1y,p2y):
+            if y <= max(p1y,p2y):
+                if x <= max(p1x,p2x):
+                    if p1y != p2y:
+                        xinters = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
+                    if p1x == p2x or x <= xinters:
+                        # returns True if x,y are inside
+                        print('es True....')
+                        return True
+        p1x,p1y = p2x,p2y
+
+    # returns False if x,y are not inside
+    return False
+
+
 def send_json(payload, action, url = None, **options):
     global header
 

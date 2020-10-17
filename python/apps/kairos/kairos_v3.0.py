@@ -105,8 +105,10 @@ global dict_of_ids_list
 
 initial_last_disappeared = {}
 source_list = []
+aforo_list = {}
 entradas_salidas = {}
 dict_of_ids_list = {}
+#polygons_list = {}
 
 
 def set_social_distance_dict_of_ids(key_id):
@@ -174,20 +176,18 @@ def get_social_distance(key_id, key = None):
         return social_distance_list[key_id][key]
 
 
-def set_aforo(key = None, value = None):
+def get_aforo(key_id = None, key = None, second_key = None):
     global aforo_list
-    if key is None:
-        aforo_list = {}
-    else:
-        aforo_list.update({key: value})
-
-
-def get_aforo(mainkey = None, key = None):
-    global aforo_list
-    if mainkey is None:
+    if key_id is None:
         return aforo_list
     else:
-        return aforo_list[mainkey][key]
+        if key is None:
+            return aforo_list[key_id]
+        else:
+            if second_key is None:
+                return aforo_list[key_id][key]
+            else:
+                return aforo_list[key_id][key][second_key]
 
 
 def set_camera(value=None):
@@ -241,13 +241,104 @@ def get_entrada_salida(key_id):
     return entradas_salidas[key_id][0], entradas_salidas[key_id][1]
 
 
-def emulate_reading_from_server():
+def log_error(msg):
+    print("-- PARAMETER ERROR --\n"*5)
+    print(" %s \n" % msg)
+    print("-- PARAMETER ERROR --\n"*5)
+    quit()
+
+
+def set_aforo(key_id, aforo_data):
+    global aforo_list
+
+    if not isinstance(aforo_data, dict):
+        log_error("'aforo_data' parameter, most be a dictionary")
+
+    if aforo_data['enabled'] not in [True, False]:
+        log_error("'aforo_data' parameter, most be True or False")
+
+    if aforo_data['outside_area'] not in [1, 2]:
+        log_error("'outside_area' parameter, most be 1 or 2.")
+
+    if not isinstance(aforo_data['reference_line'], dict):
+        log_error("reference_line, most be a dictionary. Undefining variable")
+
+    # validate coordinate values exist and are integer or floats
+    if len(aforo_data['reference_line']['coordinates']) != 2:
+        log_error("coordinates, most be a pair of values.")
+
+    for coordinate in aforo_data['reference_line']['coordinates']:
+        if not isinstance(coordinate[0], int) or not isinstance(coordinate[1], int):
+            log_error("coordinates elements, most be integers")
+
+    if not isinstance(aforo_data['reference_line']['width'], int):
+        log_error("coordinates elements, most be integers")
+
+    if not isinstance(aforo_data['reference_line']['color'], list):
+        log_error("coordinates elements, most be integers")
+
+    for color in aforo_data['reference_line']['color']:
+        if not isinstance(color, int) or color < 0 or color > 255:
+            log_error("color values should be integers and within 0-255")
+
+    if 'area_of_interest' in aforo_data['reference_line']:
+        if not isinstance(aforo_data['reference_line']['area_of_interest'], dict):
+            log_error("area of interest, most be a dictionary")
+        
+        if aforo_data['reference_line']['area_of_interest']['type'] not in ['horizontal', 'fixed', 'follow']:
+            log_error("area of interest type, most be any of the values: ['horizontal', 'fixed', 'follow']")
+        
+        if aforo_data['reference_line']['area_of_interest']['type'] in ['horizontal', 'follow']:
+            if isinstance(aforo_data['reference_line']['area_of_interest']['up'], int) and isinstance(aforo_data['reference_line']['area_of_interest']['down'], int) and isinstance(aforo_data['reference_line']['area_of_interest']['left'], int) and isinstance(aforo_data['reference_line']['area_of_interest']['right'], int) and aforo_data['reference_line']['area_of_interest']['up'] > -1 and aforo_data['reference_line']['area_of_interest']['down'] > -1 and aforo_data['reference_line']['area_of_interest']['left'] > -1 and aforo_data['reference_line']['area_of_interest']['right'] > -1: 
+
+                # generating left_top_xy, width and height
+                # left_top_x = x1 - left 
+                # left_top_y = y1 - up 
+                # width = x2 + right - left_top_x 
+                # height = y1 + down - left_top_y 
+                left_top_x = aforo_data['reference_line']['coordinates'][0][0] - aforo_data['reference_line']['area_of_interest']['left']
+                left_top_y = aforo_data['reference_line']['coordinates'][0][1] - aforo_data['reference_line']['area_of_interest']['up']
+                width = aforo_data['reference_line']['coordinates'][1][0] + aforo_data['reference_line']['area_of_interest']['right'] - left_top_x
+                height = aforo_data['reference_line']['coordinates'][1][1] + aforo_data['reference_line']['area_of_interest']['down'] - left_top_y
+
+
+                aforo_list.update(
+                    {
+                        key_id: {
+                            'enabled': aforo_data['enabled'],
+                            'outside_area': aforo_data['outside_area'],
+                            'coordinates': aforo_data['reference_line']['coordinates'],
+                            'width': aforo_data['reference_line']['width'],
+                            'color': aforo_data['reference_line']['color'],
+                            'area_of_interest': [left_top_x, left_top_y, width, height],
+                            }
+                        }
+                    )
+            else:
+                log_error("area of interest values, most be positive integers")
+        else:
+            print('setup2 ...') 
+    else:
+        aforo_list.update(
+                {
+                    key_id: {
+                        'enabled': aforo_data['enabled'],
+                        'outside_area': aforo_data['outside_area'],
+                        'coordinates': aforo_data['reference_line']['coordinates'],
+                        'width': aforo_data['reference_line']['width'],
+                        'color': aforo_data['reference_line']['color'],
+                        'area_of_interest': None,
+                        }
+                    }
+                )
+
+
+def reading_server_config():
     from configs.Server_Emulatation_configs import config as scfg
 
     # setup the services for each camera
     set_people_counting()
     set_social_distance()
-    set_aforo()
     set_camera()
 
     set_server_url(scfg['server']['url'])
@@ -301,7 +392,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
     camera_id = get_camera_id(current_pad_index)
-    is_aforo_enabled = get_aforo(camera_id, 'enabled')
+    aforo_info = get_aforo(camera_id) 
+    is_aforo_enabled = aforo_info['enabled']
     is_social_distance_enabled = get_social_distance(camera_id, 'enabled')
 
     # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
@@ -325,11 +417,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     if is_aforo_enabled:
         service.set_aforo_url(srv_url)
-        outside_area = get_aforo(camera_id, 'outside_area')
-        reference_line = get_aforo(camera_id, 'aforo_reference_line_coordinates')
-        area_of_interest = get_aforo(camera_id, 'aforo_area_of_interest')
-        aforo_line_width = get_aforo(camera_id, 'line_width')
-        aforo_line_color = get_aforo(camera_id, 'line_color')
+        outside_area = aforo_info['outside_area']
+        reference_line = aforo_info['coordinates']
+        aforo_line_color = aforo_info['color']
 
         #------------------------------------------- display info
         display_meta.num_lines = 1      # numero de lineas
@@ -345,34 +435,36 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         py_nvosd_line_params.y1 = reference_line[0][1]
         py_nvosd_line_params.x2 = reference_line[1][0]
         py_nvosd_line_params.y2 = reference_line[1][1]
-        py_nvosd_line_params.line_width = aforo_line_width
+        py_nvosd_line_params.line_width = aforo_info['width']
         py_nvosd_line_params.line_color.red = aforo_line_color[0]
         py_nvosd_line_params.line_color.green = aforo_line_color[1]
         py_nvosd_line_params.line_color.blue = aforo_line_color[2]
         py_nvosd_line_params.line_color.alpha = aforo_line_color[3]
 
-        '''
-        # setup del rectangulo de Ent/Sal                        #Leftx------------------------------Topy
-        # de igual manera que los parametros de linea,           |                                      | 
-        # los valores del rectangulo se calculan en base a       |                                      |
-        # los valoes del archivo de configuracion                v                                      |
-        #                                                        #Height -------------------------> Width
-        '''
+        if aforo_info['area_of_interest']:
+            '''
+            # setup del rectangulo de Ent/Sal                        #TopLeftx, TopLefty --------------------
+            # de igual manera que los parametros de linea,           |                                      |
+            # los valores del rectangulo se calculan en base a       |                                      |
+            # los valoes del archivo de configuracion                v                                      |
+            #                                                        #Height -------------------------> Width
+            '''
 
-        Topy = area_of_interest['top']
-        Leftx = area_of_interest['left']
-        Height = area_of_interest['height']
-        Width = area_of_interest['width']
+            TopLeftx = aforo_info['area_of_interest'][0]
+            TopLefty = aforo_info['area_of_interest'][1]
+            Width = aforo_info['area_of_interest'][2]
+            Height = aforo_info['area_of_interest'][3]
 
-        py_nvosd_rect_params.left = Leftx
-        py_nvosd_rect_params.height = Height
-        py_nvosd_rect_params.top = Topy
-        py_nvosd_rect_params.width = Width
-        py_nvosd_rect_params.border_width = 4
-        py_nvosd_rect_params.border_color.red = 0.0
-        py_nvosd_rect_params.border_color.green = 0.0
-        py_nvosd_rect_params.border_color.blue = 1.0
-        py_nvosd_rect_params.border_color.alpha = 1.0
+            py_nvosd_rect_params.left = TopLeftx
+            py_nvosd_rect_params.height = Height
+            py_nvosd_rect_params.top = TopLefty
+            py_nvosd_rect_params.width = Width
+
+            py_nvosd_rect_params.border_width = 4
+            py_nvosd_rect_params.border_color.red = 0.0
+            py_nvosd_rect_params.border_color.green = 0.0
+            py_nvosd_rect_params.border_color.blue = 1.0
+            py_nvosd_rect_params.border_color.alpha = 1.0
 
     if is_social_distance_enabled:
         service.set_social_distance_url(srv_url)
@@ -409,14 +501,26 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
 
-            #if is_aforo_enabled:
-            if is_aforo_enabled and x > Leftx and x < (Leftx + Width) and y < (Topy + Height) and y > Topy:
-                entrada, salida = get_entrada_salida(camera_id)
-                initial, last = get_initial_last(camera_id)
-                entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, initial, last, entrada, salida)
-                #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
-                set_entrada_salida(camera_id, entrada, salida)
-                #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
+            if is_aforo_enabled:
+                if aforo_info['area_of_interest']:
+                    #aa = service.is_point_insde_polygon(x, y, polygon_sides, polygon)
+                    #print('aaaaaaaaaaaaaaaaaaaaaaa', aforo_info['area_of_interest'])
+                    #quit()
+                    if x > TopLeftx and x < (TopLeftx + Width) and y < (TopLefty + Height) and y > TopLefty:
+                        #polygon_sides, polygon = get_reference_line(camera_id)
+                        entrada, salida = get_entrada_salida(camera_id)
+                        initial, last = get_initial_last(camera_id)
+                        entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, initial, last, entrada, salida)
+                        #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
+                        set_entrada_salida(camera_id, entrada, salida)
+                        #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
+                else:
+                    entrada, salida = get_entrada_salida(camera_id)
+                    initial, last = get_initial_last(camera_id)
+                    entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, outside_area, reference_line, initial, last, entrada, salida)
+                    #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
+                    set_entrada_salida(camera_id, entrada, salida)
+                    #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
             try: 
                 l_obj = l_obj.next
             except StopIteration:
@@ -530,7 +634,7 @@ def create_source_bin(index, uri):
 def main():
     # Check input arguments
     # Permite introducir un numero x de fuentes, en nuestro caso streamings delas camaras Meraki        
-    emulate_reading_from_server()    
+    reading_server_config()    
 
     number_sources = len(get_sources()) 
 
