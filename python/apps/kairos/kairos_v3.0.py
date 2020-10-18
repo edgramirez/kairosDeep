@@ -106,6 +106,8 @@ global dict_of_ids_list
 initial_last_disappeared = {}
 source_list = []
 aforo_list = {}
+camera_list = []
+social_distance_list = {}
 entradas_salidas = {}
 dict_of_ids_list = {}
 
@@ -159,12 +161,9 @@ def get_people_counting(index = None, key = None):
         return people_counting_list[index][key]
 
 
-def set_social_distance(key_id = None, value=None):
+def set_social_distance(key_id, value=None):
     global social_distance_list
-    if key_id is None:
-        social_distance_list = {}
-    else:
-        social_distance_list.update({key_id: value})
+    social_distance_list.update({key_id: value})
 
 
 def get_social_distance(key_id, key = None):
@@ -172,7 +171,9 @@ def get_social_distance(key_id, key = None):
     if key_id is None:
         return social_distance_list
     else:
-        return social_distance_list[key_id][key]
+        if social_distance_list:
+            return social_distance_list[key_id][key]
+    return False
 
 
 def get_aforo(key_id = None, key = None, second_key = None):
@@ -189,17 +190,10 @@ def get_aforo(key_id = None, key = None, second_key = None):
                 return aforo_list[key_id][key][second_key]
 
 
-def set_camera(value=None):
-    global camera_list
-    if value is None:
-        camera_list = []
-    else:
-        camera_list.append(value)
-
-
 def set_sources(value):
     global source_list
-    source_list.append(value)
+    if value:
+        source_list.append(value)
 
 
 def get_sources():
@@ -207,12 +201,15 @@ def get_sources():
     return source_list
 
 
-def get_camera_id(index = None):
+def set_camera(value):
     global camera_list
-    if index is None:
-        return camera_list
-    else:
-        return camera_list[index]
+    if value:
+        camera_list.append(value)
+
+
+def get_camera_id(index):
+    global camera_list
+    return camera_list[index]
 
 
 def set_server_url(url):
@@ -305,13 +302,17 @@ def set_aforo(key_id, aforo_data):
                 else:
                     topx = x2 - left
 
-                if y1 > y2:
+                if y1 < y2:
                     topy = y1 - up
                 else:
                     topy = y2 - up
 
                 width = left + right + abs(x1 - x2)
                 height = up + down + abs(y1 - y2)
+
+                #print(x1,y1,x2,y2)
+                #print(topx,topy,width,height)
+                #quit()
 
                 aforo_list.update(
                     {
@@ -349,27 +350,37 @@ def reading_server_config():
 
     # setup the services for each camera
     set_people_counting()
-    set_social_distance()
-    set_camera()
 
     set_server_url(scfg['server']['url'])
     set_token(scfg['server']['token_file'])
     set_number_of_resources(len(scfg['cameras']))
 
     for camera in scfg['cameras'].keys():
-        set_camera(camera)
+        activate_service = False
+        source = None
         for key in scfg['cameras'][camera].keys():
+
+            #set_source = scfg['cameras'][camera][key]
             if key == 'source':
-                set_sources(scfg['cameras'][camera][key])
-            elif key == 'aforo':
+                source = scfg['cameras'][camera][key]
+                continue
+
+            if key == 'aforo' and scfg['cameras'][camera][key]['enabled']:
                 set_aforo(camera, scfg['cameras'][camera][key])
                 set_initial_last_disappeared(camera)
                 set_entrada_salida(camera, 0, 0)
-            elif key == 'people_counting':
-                set_people_counting(scfg['cameras'][camera][key])
+                activate_service = True
             elif key == 'social_distance':
                 set_social_distance(camera, scfg['cameras'][camera][key])
                 set_social_distance_dict_of_ids(camera)
+                activate_service = True
+            elif key == 'people_counting':
+                set_people_counting(scfg['cameras'][camera][key])
+                activate_service = True
+
+        if activate_service:
+            set_camera(camera)
+            set_sources(source)
 
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
@@ -649,6 +660,9 @@ def main():
 
     number_sources = len(get_sources()) 
 
+    if number_sources < 1:
+        log_error("No source to analyze or not service associated to the source. check configuration file")
+
     # Variable para verificar si al menos un video esta vivo
     is_live = False
 
@@ -673,6 +687,7 @@ def main():
     # Create nvstreammux instance to form batches from one or more sources.
     
     streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
+
     if not streammux:
         sys.stderr.write(" Unable to create NvStreamMux \n")
     pipeline.add(streammux)
