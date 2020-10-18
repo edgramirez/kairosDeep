@@ -108,7 +108,6 @@ source_list = []
 aforo_list = {}
 entradas_salidas = {}
 dict_of_ids_list = {}
-#polygons_list = {}
 
 
 def set_social_distance_dict_of_ids(key_id):
@@ -292,15 +291,27 @@ def set_aforo(key_id, aforo_data):
             if isinstance(aforo_data['reference_line']['area_of_interest']['up'], int) and isinstance(aforo_data['reference_line']['area_of_interest']['down'], int) and isinstance(aforo_data['reference_line']['area_of_interest']['left'], int) and isinstance(aforo_data['reference_line']['area_of_interest']['right'], int) and aforo_data['reference_line']['area_of_interest']['up'] > -1 and aforo_data['reference_line']['area_of_interest']['down'] > -1 and aforo_data['reference_line']['area_of_interest']['left'] > -1 and aforo_data['reference_line']['area_of_interest']['right'] > -1: 
 
                 # generating left_top_xy, width and height
-                # left_top_x = x1 - left 
-                # left_top_y = y1 - up 
-                # width = x2 + right - left_top_x 
-                # height = y1 + down - left_top_y 
-                left_top_x = aforo_data['reference_line']['coordinates'][0][0] - aforo_data['reference_line']['area_of_interest']['left']
-                left_top_y = aforo_data['reference_line']['coordinates'][0][1] - aforo_data['reference_line']['area_of_interest']['up']
-                width = aforo_data['reference_line']['coordinates'][1][0] + aforo_data['reference_line']['area_of_interest']['right'] - left_top_x
-                height = aforo_data['reference_line']['coordinates'][1][1] + aforo_data['reference_line']['area_of_interest']['down'] - left_top_y
+                x1 = aforo_data['reference_line']['coordinates'][0][0]
+                y1 = aforo_data['reference_line']['coordinates'][0][1]
+                x2 = aforo_data['reference_line']['coordinates'][1][0]
+                y2 = aforo_data['reference_line']['coordinates'][1][1]
+                left = aforo_data['reference_line']['area_of_interest']['left']
+                right = aforo_data['reference_line']['area_of_interest']['right']
+                up = aforo_data['reference_line']['area_of_interest']['up']
+                down = aforo_data['reference_line']['area_of_interest']['down']
 
+                if x1 < x2:
+                    topx = x1 - left
+                else:
+                    topx = x2 - left
+
+                if y1 > y2:
+                    topy = y1 - up
+                else:
+                    topy = y2 - up
+
+                width = left + right + abs(x1 - x2)
+                height = up + down + abs(y1 - y2)
 
                 aforo_list.update(
                     {
@@ -310,7 +321,7 @@ def set_aforo(key_id, aforo_data):
                             'coordinates': aforo_data['reference_line']['coordinates'],
                             'width': aforo_data['reference_line']['width'],
                             'color': aforo_data['reference_line']['color'],
-                            'area_of_interest': [left_top_x, left_top_y, width, height],
+                            'area_of_interest': [topx, topy, width, height],
                             }
                         }
                     )
