@@ -176,18 +176,19 @@ def get_social_distance(key_id, key = None):
     return False
 
 
-def get_aforo(key_id = None, key = None, second_key = None):
+def get_aforo(key_id, key = None, second_key = None):
     global aforo_list
-    if key_id is None:
-        return aforo_list
+
+    if key_id not in aforo_list.keys():
+        return {'enabled': False}
+
+    if key is None:
+        return aforo_list[key_id]
     else:
-        if key is None:
-            return aforo_list[key_id]
+        if second_key is None:
+            return aforo_list[key_id][key]
         else:
-            if second_key is None:
-                return aforo_list[key_id][key]
-            else:
-                return aforo_list[key_id][key][second_key]
+            return aforo_list[key_id][key][second_key]
 
 
 def set_sources(value):
