@@ -112,11 +112,6 @@ entradas_salidas = {}
 dict_of_ids_list = {}
 
 
-def set_social_distance_dict_of_ids(key_id):
-    global dict_of_ids_list
-    dict_of_ids_list.update({key_id: {}})
-
-
 def get_socialt_distance_dict_of_ids(key_id):
     global dict_of_ids_list
     return dict_of_ids_list[key_id]
@@ -161,19 +156,38 @@ def get_people_counting(index = None, key = None):
         return people_counting_list[index][key]
 
 
-def set_social_distance(key_id, value=None):
+def set_social_distance(key_id, social_distance_data):
     global social_distance_list
-    social_distance_list.update({key_id: value})
+
+    if not isinstance(social_distance_data, dict):
+        log_error("'social_distance_data' parameter, most be a dictionary")
+
+    if social_distance_data['enabled'] not in [True, False]:
+        log_error("'social_distance_data' parameter, most be True or False")
+
+    if not isinstance(social_distance_data['tolerated_distance'], int) and social_distance_data['tolerated_distance'] > 3:
+        log_error("'social_distance_data.tolarated_distance' parameter, most be and integer bigger than 3 pixels")
+
+    if not isinstance(social_distance_data['persistence_time'], int) and social_distance_data['persistence_time'] > -1:
+        log_error("'social_distance_data.persistence_time' parameter, most be a positive integer")
+
+    social_distance_list.update(
+            {
+                key_id: social_distance_data
+            })
+    social_distance_list[key_id].update({'dict_of_ids_list': {}})
 
 
 def get_social_distance(key_id, key = None):
     global social_distance_list
-    if key_id is None:
-        return social_distance_list
-    else:
-        if social_distance_list:
+
+    if social_distance_list and key_id in social_distance_list.keys():
+        if key:
             return social_distance_list[key_id][key]
-    return False
+        else:
+            return social_distance_list[key_id]
+
+    return {'enabled': False}
 
 
 def get_aforo(key_id, key = None, second_key = None):
@@ -238,6 +252,65 @@ def get_entrada_salida(key_id):
     return entradas_salidas[key_id][0], entradas_salidas[key_id][1]
 
 
+def validate_keys(service, data, list_of_keys):
+
+    if not isinstance(data, dict):
+        log_error("'data' parameter, most be a dictionary")
+
+    for key in list_of_keys:
+        if key not in data.keys():
+            log_error("'{}' missing parameter {}, in config file".format(service, key))
+
+
+def validate_aforo_values(data):
+
+    validate_keys('aforo', data, ['enabled', 'outside_area', 'reference_line'])
+
+    if not isinstance(data['enabled'], bool):
+        log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
+
+    if data['outside_area'] not in [1, 2]:
+        log_error("'outside_area' parameter, most be 1 or 2.")
+
+    if not isinstance(data['reference_line'], dict):
+        log_error("reference_line, most be a dictionary. Undefining variable")
+
+    if len(data['reference_line']['coordinates']) != 2:
+        log_error("coordinates, most be a pair of values.")
+
+    for coordinate in data['reference_line']['coordinates']:
+        if not isinstance(coordinate[0], int) or not isinstance(coordinate[1], int):
+            log_error("coordinates elements, most be integers")
+
+    if not isinstance(data['reference_line']['width'], int):
+        log_error("coordinates elements, most be integers")
+
+    if not isinstance(data['reference_line']['color'], list):
+        log_error("coordinates color elements, most be a list of integers")
+
+    for color in data['reference_line']['color']:
+        if not isinstance(color, int) or color < 0 or color > 255:
+            log_error("color values should be integers and within 0-255")
+
+    return True
+
+
+def validate_socialdist_values(data):
+
+    validate_keys('aforo', data, ['enabled', 'tolerated_distance', 'persistence_time'])
+
+    if not isinstance(data['enabled'], bool):
+        log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
+
+    if not isinstance(data['tolerated_distance'], int) and data['tolerated_distance'] > 0:
+        log_error("tolerated_distance element, most be a positive integer")
+
+    if not isinstance(data['persistence_time'], int) and data['persistence_time'] > 0:
+        log_error("persistence_time element, most a be positive integer")
+
+    return True
+
+
 def log_error(msg):
     print("-- PARAMETER ERROR --\n"*5)
     print(" %s \n" % msg)
@@ -247,36 +320,6 @@ def log_error(msg):
 
 def set_aforo(key_id, aforo_data):
     global aforo_list
-
-    if not isinstance(aforo_data, dict):
-        log_error("'aforo_data' parameter, most be a dictionary")
-
-    if aforo_data['enabled'] not in [True, False]:
-        log_error("'aforo_data' parameter, most be True or False")
-
-    if aforo_data['outside_area'] not in [1, 2]:
-        log_error("'outside_area' parameter, most be 1 or 2.")
-
-    if not isinstance(aforo_data['reference_line'], dict):
-        log_error("reference_line, most be a dictionary. Undefining variable")
-
-    # validate coordinate values exist and are integer or floats
-    if len(aforo_data['reference_line']['coordinates']) != 2:
-        log_error("coordinates, most be a pair of values.")
-
-    for coordinate in aforo_data['reference_line']['coordinates']:
-        if not isinstance(coordinate[0], int) or not isinstance(coordinate[1], int):
-            log_error("coordinates elements, most be integers")
-
-    if not isinstance(aforo_data['reference_line']['width'], int):
-        log_error("coordinates elements, most be integers")
-
-    if not isinstance(aforo_data['reference_line']['color'], list):
-        log_error("coordinates elements, most be integers")
-
-    for color in aforo_data['reference_line']['color']:
-        if not isinstance(color, int) or color < 0 or color > 255:
-            log_error("color values should be integers and within 0-255")
 
     if 'area_of_interest' in aforo_data['reference_line']:
         if not isinstance(aforo_data['reference_line']['area_of_interest'], dict):
@@ -361,21 +404,19 @@ def reading_server_config():
         source = None
         for key in scfg['cameras'][camera].keys():
 
-            #set_source = scfg['cameras'][camera][key]
             if key == 'source':
                 source = scfg['cameras'][camera][key]
                 continue
 
-            if key == 'aforo' and scfg['cameras'][camera][key]['enabled']:
+            if key == 'aforo' and validate_aforo_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_aforo(camera, scfg['cameras'][camera][key])
                 set_initial_last_disappeared(camera)
                 set_entrada_salida(camera, 0, 0)
                 activate_service = True
-            elif key == 'social_distance':
+            elif key == 'social_distance' and validate_socialdist_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_social_distance(camera, scfg['cameras'][camera][key])
-                set_social_distance_dict_of_ids(camera)
                 activate_service = True
-            elif key == 'people_counting':
+            elif key == 'people_counting' and scfg['cameras'][camera][key]['enabled']:
                 set_people_counting(scfg['cameras'][camera][key])
                 activate_service = True
 
@@ -415,9 +456,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
     camera_id = get_camera_id(current_pad_index)
+
     aforo_info = get_aforo(camera_id) 
     is_aforo_enabled = aforo_info['enabled']
-    is_social_distance_enabled = get_social_distance(camera_id, 'enabled')
+
+    social_distance_info = get_social_distance(camera_id)
+    is_social_distance_enabled = social_distance_info['enabled']
 
     # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
     display_meta.num_labels = 1                            # numero de textos
@@ -492,8 +536,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     if is_social_distance_enabled:
         service.set_social_distance_url(srv_url)
         nfps = 19 # HARDCODED TILL GET THE REAL VALUE
-        risk_value = nfps * get_social_distance(camera_id, 'persistence_time')
-        tolerated_distance = get_social_distance(camera_id, 'tolerated_distance')
+        risk_value = nfps * social_distance_info['persistence_time']
+        tolerated_distance = social_distance_info['tolerated_distance']
 
     while l_frame is not None:
         try:
@@ -577,7 +621,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             boxes_length = len(boxes) # if only 1 object is present there is no need to calculate the distance
             if boxes_length > 1:
                 service.set_frame_counter(frame_number)
-                service.evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, get_socialt_distance_dict_of_ids(camera_id))
+                service.evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, social_distance_info['dict_of_ids_list'])
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
         #====================== FIN de definicion de valores de mensajes a pantalla
 
