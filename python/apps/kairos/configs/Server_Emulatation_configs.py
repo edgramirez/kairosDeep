@@ -4,14 +4,14 @@ config = {
             'token_file': '.token',
             },
         'cameras': {
-            'DTevar-culhuacan-34:56:fe:22:22:22': 
+            'DTevar-culhuacan-34:56:fe:11:11:11': 
                 {
-                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
+                'source': "rtsp://192.168.128.3:9000/live",
                 'aforo': {
-                    'enabled': True,
+                    'enabled': False,
                     'outside_area': 1, 
                     'reference_line': {
-                        'coordinates': [(450, 410), (1100, 410)], 
+                        'coordinates': [(650, 210), (1100, 210)], 
                         'width': 5, 
                         'color': [1, 1, 1, 1],
                         'area_of_interest': {
@@ -23,8 +23,36 @@ config = {
                             }, # type = follow, fixed, horizontal ['horizontal' is the default]
                         }, 
                     },
-                'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'line_width': 5,'line_color': (50, 120 ,255)},
-                'people_counting': {'enabled': False},
+                'social_distance': {
+                    'enabled': False,
+                    'tolerated_distance': 200,
+                    'persistence_time': 1,
+                    },
+                },
+            'DTevar-culhuacan-34:56:fe:22:22:22': 
+                {
+                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
+                'aforo': {
+                    'enabled': False,
+                    'outside_area': 1, 
+                    'reference_line': {
+                        'coordinates': [(550, 610), (990, 410)], 
+                        'width': 5, 
+                        'color': [1, 1, 1, 1],
+                        'area_of_interest': {
+                            'type': 'horizontal',
+                            'up': 90,
+                            'down': 90,
+                            'left': 0,
+                            'right': 0,
+                            }, # type = follow, fixed, horizontal ['horizontal' is the default]
+                        }, 
+                    },
+                'social_distance': {
+                    'enabled': True,
+                    'tolerated_distance': 50,
+                    'persistence_time': 1,
+                    },
                 },
             },
 
@@ -44,6 +72,12 @@ config = {
 
 
 '''
+                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
+                'source': 'file:///media/edgar/external_sdcard/MV12_Ent_Sal_20Agst2020ERM.mp4',
+                'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'line_width': 5,'line_color': (50, 120 ,255)},
+                'people_counting': {'enabled': False},
+
+
                     'polygon': [(360,360), (460,440), (560,540), (440, 640), (300,620)],
                     'aforo_area_of_interest': {'top': 360, 'left': 400, 'height': 100, 'width': 750}, 
                     'line_width': 5,
