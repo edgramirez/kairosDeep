@@ -118,8 +118,40 @@ def get_timestamp():
     return int(time.time() * 1000)
 
 
-# Return true if line segments AB and CD intersect
+#def check_if_object_is_in_area2(object_coordinates, reference_line, m):
 def check_if_object_is_in_area2(object_coordinates, reference_line):
+    x1 = reference_line[0][0]
+    y1 = reference_line[0][1]
+    x2 = reference_line[1][0]
+    y2 = reference_line[1][1]
+
+    x = object_coordinates[0]
+    y = object_coordinates[1]
+
+    # si esto funciona hay que hacerlo solo una vez al inicio de la lectura de los datos de la recta 
+    # y solo pasar el valor del tipo de comparacion que se desee hacer, la ganacia en tiempo es minima del orden de 1seg en 1millon de ejecuciones no vale la pena
+    if (x2 - x1) == 0:
+        if x > x1:
+            return True
+        else:
+            return False
+    elif (y2 - y1) == 0:
+        if y > y1:
+            return True
+        else:
+            return False
+    else:
+        m = ((y2 - y1) * 1.0) / (x2 -x1)
+        y_overtheline = (m * (x - x1)) + y1
+
+        if y > y_overtheline:
+            return True
+        else:
+            return False
+
+
+# Return true if line segments AB and CD intersect
+def OLD_check_if_object_is_in_area2(object_coordinates, reference_line):
     '''
     returns False if object is in area A1
     returns True if object is in area A2
@@ -309,6 +341,7 @@ def counting_in_and_out_first_detection(box, object_id):
     y = box[1]
     '''
     # returns True if object is in area A2
+    #if check_if_object_is_in_area2(box):
     if check_if_object_is_in_area2(box):
         if object_id not in initial:
             initial.update({object_id: 2})
@@ -421,14 +454,14 @@ def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_val
                         alert_id = dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['alert_id']
                         data = {
                                 'camera-id': camera_id,
-                                'date_time': get_timestamp(),
+                                '#date_time': get_timestamp(),
                                 'id_pivot': key,
                                 'related_id': inner_id,
                                 'alert_id': alert_id,
                                 }
-                        print(data, 'PUT', social_distance_url)
-                        x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
-                        x.start()
+                        print('cleaning:', data, 'PUT', social_distance_url)
+                        #x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
+                        #x.start()
 
                 # Now delete the id cause is no longer in sight
                 dict_of_ids.pop(key)
@@ -512,15 +545,15 @@ def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_val
 
                                 data = {
                                     'camera_id': camera_id,
-                                    'date_time': get_timestamp(),
+                                    '#date_time': get_timestamp(),
                                     'distance': distance,
                                     'id_pivot': ids[i-1],
                                     'related_id': ids[i+j],
                                     'alert_id': alert_id,
                                     }
                                 print(data, 'POST', social_distance_url)
-                                x = threading.Thread(target=send_json, args=(data, 'POST', social_distance_url,))
-                                x.start()
+                                #x = threading.Thread(target=send_json, args=(data, 'POST', social_distance_url,))
+                                #x.start()
                     else:
                         # add element if not exist on the dictonary
                         dict_of_ids[str(ids[i-1])]['inner_ids'].update(
@@ -539,4 +572,3 @@ def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_val
             break
         i += 1
 
-#dict_of_ids = {}

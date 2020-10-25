@@ -4,52 +4,65 @@ config = {
             'token_file': '.token',
             },
         'cameras': {
-            'DTevar-culhuacan-34:56:fe:11:11:11': 
-                {
-                'source': "rtsp://192.168.128.3:9000/live",
-                'aforo': {
-                    'enabled': False,
-                    'outside_area': 1, 
-                    'reference_line': {
-                        'coordinates': [(650, 210), (1100, 210)], 
-                        'width': 5, 
-                        'color': [1, 1, 1, 1],
-                        'area_of_interest': {
-                            'type': 'horizontal',
-                            'up': 90,
-                            'down': 90,
-                            'left': 0,
-                            'right': 0,
-                            }, # type = follow, fixed, horizontal ['horizontal' is the default]
-                        }, 
-                    },
-                'social_distance': {
-                    'enabled': False,
-                    'tolerated_distance': 200,
-                    'persistence_time': 1,
-                    },
-                },
             'DTevar-culhuacan-34:56:fe:22:22:22': 
                 {
                 'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
                 'aforo': {
-                    'enabled': False,
-                    'outside_area': 1, 
+                    'enabled': True,
                     'reference_line': {
+                        'outside_area': 1, 
+                        'coordinates': [(540, 610), (1020, 410)], 
+                        'width': 5, 
+                        'color': [1, 1, 1, 1],
+                        }, 
+                    'area_of_interest': {
+                        'type': 'horizontal',
+                        'up': 90,
+                        'down': 90,
+                        'left': 0,
+                        'right': 0,
+                        }, # type = follow, fixed, horizontal ['horizontal' is the default]
+                    },
+                'social_distance': {
+                    'enabled': False,
+                    'tolerated_distance': 50,
+                    'persistence_time': 1,
+                    },
+                },
+            },
+
+        }
+
+
+'''
+
+config = {
+        'server': {
+            'url': 'https://mit.kairosconnect.app/',
+            'token_file': '.token',
+            },
+        'cameras': {
+            'DTevar-culhuacan-34:56:fe:22:22:22': 
+                {
+                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
+                'aforo': {
+                    'enabled': True,
+                    'reference_line': {
+                        'outside_area': 1, 
                         'coordinates': [(550, 610), (990, 410)], 
                         'width': 5, 
                         'color': [1, 1, 1, 1],
-                        'area_of_interest': {
-                            'type': 'horizontal',
-                            'up': 90,
-                            'down': 90,
-                            'left': 0,
-                            'right': 0,
-                            }, # type = follow, fixed, horizontal ['horizontal' is the default]
                         }, 
+                    'area_of_interest': {
+                        'type': 'horizontal',
+                        'up': 90,
+                        'down': 90,
+                        'left': 0,
+                        'right': 0,
+                        }, # type = follow, fixed, horizontal ['horizontal' is the default]
                     },
                 'social_distance': {
-                    'enabled': True,
+                    'enabled': False,
                     'tolerated_distance': 50,
                     'persistence_time': 1,
                     },
@@ -68,10 +81,7 @@ config = {
 
 
 
-
-
-
-'''
+                'source': 'file:///home/edgar/Downloads/160820_028_NYC_GrandCentralStation4_1080p.mp4',
                 'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
                 'source': 'file:///media/edgar/external_sdcard/MV12_Ent_Sal_20Agst2020ERM.mp4',
                 'social_distance': {'enabled': False,'tolerated_distance': 150,'persistence_time': 1,'line_width': 5,'line_color': (50, 120 ,255)},
