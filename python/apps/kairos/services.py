@@ -118,33 +118,36 @@ def get_timestamp():
     return int(time.time() * 1000)
 
 
-#def check_if_object_is_in_area2(object_coordinates, reference_line, m):
-def check_if_object_is_in_area2(object_coordinates, reference_line):
-    x1 = reference_line[0][0]
-    y1 = reference_line[0][1]
-    x2 = reference_line[1][0]
-    y2 = reference_line[1][1]
-
-    x = object_coordinates[0]
-    y = object_coordinates[1]
-
-    # si esto funciona hay que hacerlo solo una vez al inicio de la lectura de los datos de la recta 
-    # y solo pasar el valor del tipo de comparacion que se desee hacer, la ganacia en tiempo es minima del orden de 1seg en 1millon de ejecuciones no vale la pena
-    if (x2 - x1) == 0:
-        if x > x1:
+def check_if_object_is_in_area2(object_coordinates, reference_line, m, b):
+    '''
+    # returns True if object is in Area2
+    # returns False if object is in Area1
+    '''
+    if m is None:
+        # object_coordinates[0] -  x
+        # reference_line[0][0]  -  x1
+        # if x > x1 then is in Area2, else in Area1
+        if object_coordinates[0] > reference_line[0][0]:
             return True
-        else:
-            return False
-    elif (y2 - y1) == 0:
-        if y > y1:
+        return False
+    elif m == 0:
+        # object_coordinates[1] -  y
+        # reference_line[0][1]  -  y1
+        # if y > y1 then is in Area2, else in Area1
+        if object_coordinates[1] > reference_line[0][1]:
             return True
-        else:
-            return False
+        return False
     else:
-        m = ((y2 - y1) * 1.0) / (x2 -x1)
-        y_overtheline = (m * (x - x1)) + y1
+        #x1 = reference_line[0][0]
+        #y1 = reference_line[0][1]
+        #x = object_coordinates[0]
+        #m = ((y2 - y1) * 1.0) / (x2 -x1)
+        #y_overtheline = (m * (x - x1)) + y1
+        y_overtheline = (m * object_coordinates[0]) + b
+        #y_overtheline = (m * (object_coordinates[0] - reference_line[0][0])) + reference_line[0][1]
 
-        if y > y_overtheline:
+        #if y > y_overtheline:
+        if object_coordinates[1] > y_overtheline:
             return True
         else:
             return False
@@ -354,7 +357,7 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, last, entradas, salidas):
+def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, last, entradas, salidas, m, b):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -366,7 +369,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, 
     initial -  must be a dictionary, and will be used to store the first position (area 1 or area2) of a given ID
     last -     must be a dictionary, and will be used to store the last position (area 1 or area2) of a given ID
     '''
-    if check_if_object_is_in_area2(box, referece_line):
+    if check_if_object_is_in_area2(box, referece_line, m, b):
         area = 2
     else:
         area = 1
