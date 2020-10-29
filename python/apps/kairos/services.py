@@ -43,7 +43,7 @@ def set_aforo_url(srv_url):
 
 def set_social_distance_url(srv_url):
     global social_distance_url
-    social_distance_url = srv_url + '/SERVICE_NOT_DEFINED_'
+    social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
 
 
 ########## need corretion as in set_aforo_url()
@@ -213,7 +213,7 @@ def send_json(payload, action, url = None, **options):
     data = json.dumps(payload)
 
     # emilio comenta esto para insertar en MongoDB
-    return True
+    # return True
 
     for retry in range(retries):
         try:
@@ -269,9 +269,10 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id, outside_area):
                         '#date-end': get_timestamp(),
                         }
                 print('In sending_json........', item, direction_1_to_2)
-
                 x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url))
                 x.start()
+                #send_json(data, 'PUT', srv_url)
+
             elif initial[item] == 2 and last[item] == 1:
                 #        'id': str(item),
                 data = {
@@ -301,8 +302,8 @@ def people_counting_storing_fist_time(object_id, camera_id):
 
     if object_id not in first_time_set:
         data = {
-                'camera_id': camera_id,
-                'date_time': get_timestamp(),
+                'camera-id': camera_id,
+                '#date': get_timestamp(),
                 'object_id': object_id,
                 }
         print('People_counting first time..POST', data)
@@ -322,8 +323,8 @@ def people_counting_last_time_detected(ids, camera_id):
         for item in first_time_set.difference(ids_set):
             if item not in last_time_set:
                 data = {
-                        'camera_id': camera_id,
-                        'date_time': get_timestamp(),
+                        'camera-id': camera_id,
+                        '#date': get_timestamp(),
                         'object_id': item,
                         }
                 print('People_counting last time.. PUT', data)
@@ -344,7 +345,6 @@ def counting_in_and_out_first_detection(box, object_id):
     y = box[1]
     '''
     # returns True if object is in area A2
-    #if check_if_object_is_in_area2(box):
     if check_if_object_is_in_area2(box):
         if object_id not in initial:
             initial.update({object_id: 2})
@@ -357,7 +357,8 @@ def counting_in_and_out_first_detection(box, object_id):
             last.update({object_id: 1})
 
 
-def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, last, entradas, salidas, m, b):
+#def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, last, entradas, salidas, m, b):
+def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -369,10 +370,28 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, 
     initial -  must be a dictionary, and will be used to store the first position (area 1 or area2) of a given ID
     last -     must be a dictionary, and will be used to store the last position (area 1 or area2) of a given ID
     '''
-    if check_if_object_is_in_area2(box, referece_line, m, b):
+
+    if rectangle:
+        # si el punto esta afuera del area de interes no evaluamos
+        if box[0] < rectangle[0] or box[0] > rectangle[4] or box[1] > rectangle[5] and box[1] < rectangle[1]:
+            return entradas, salidas
+
+    if reference_line:
+        if check_if_object_is_in_area2(box, reference_line, m, b):
+            area = 2
+        else:
+            area = 1
+
+        if outside_area == 1:
+            direction_1_to_2 = 1
+            direction_2_to_1 = 0
+        else:
+            direction_1_to_2 = 0
+            direction_2_to_1 = 1
+    elif reference_line is None and rectangle:
         area = 2
-    else:
-        area = 1
+        direction_1_to_2 = 1
+        direction_2_to_1 = 0
 
     if object_id not in initial:
         initial.update({object_id: area})
@@ -381,18 +400,11 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, 
     else:
         last.update({object_id: area})
 
-    # De igual forma si los elementos continen las misma areas en el estado actual que en el previo, entonces no tiene caso evaluar mas
+    # De igual forma si los elementos continen las misma areas en el estado 
+    # actual que en el previo, entonces no tiene caso evaluar mas
+    print(object_id, initial, last)
     if initial[object_id] == last[object_id]:
         return entradas, salidas
-
-    global aforo_url
-
-    if outside_area == 1:
-        direction_1_to_2 = 1
-        direction_2_to_1 = 0
-    else:
-        direction_1_to_2 = 0
-        direction_2_to_1 = 1
 
     for item in last.keys():
         if initial[item] == 1 and last[item] == 2:
@@ -435,7 +447,7 @@ def aforo(box, object_id, ids, camera_id, outside_area, referece_line, initial, 
 
     return entradas, salidas
 
-def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, dict_of_ids):
+def social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, dict_of_ids):
     # distance_plus_factor = 'tolerated_distance' * 1.42
     # nfps
     global social_distance_url
@@ -455,16 +467,18 @@ def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_val
                 for inner_id in dict_of_ids_subset[key]['inner_ids']:
                     if dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['reported_in_frame'] and (dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['visible'] / risk_value) > 1: 
                         alert_id = dict_of_ids_subset[key]['inner_ids'][str(inner_id)]['alert_id']
+                        #        'id_pivot': key,
+                        #        'alert_id': alert_id,
+                        #        'related_id': inner_id,
                         data = {
+                                'id': alert_id,
                                 'camera-id': camera_id,
-                                '#date_time': get_timestamp(),
-                                'id_pivot': key,
-                                'related_id': inner_id,
-                                'alert_id': alert_id,
+                                '#date': get_timestamp(),
                                 }
                         print('cleaning:', data, 'PUT', social_distance_url)
-                        #x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
-                        #x.start()
+                        #send_json(data, 'PUT', social_distance_url)
+                        x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
+                        x.start()
 
                 # Now delete the id cause is no longer in sight
                 dict_of_ids.pop(key)
@@ -546,17 +560,20 @@ def evaluate_social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_val
                                 alert_id = str(int((datetime.now() - datetime(1970,1,1)).total_seconds())) + '_' + str(ids[i-1]) + '_' + str(ids[i+j])
                                 dict_of_ids[str(ids[i-1])]['inner_ids'][str(ids[i+j])].update({'alert_id': alert_id})
 
+                                #    'distance': distance,
+                                #    'id_pivot': ids[i-1],
+                                #    'related_id': ids[i+j],
+                                #    'alert_id': alert_id,
                                 data = {
-                                    'camera_id': camera_id,
-                                    '#date_time': get_timestamp(),
-                                    'distance': distance,
-                                    'id_pivot': ids[i-1],
-                                    'related_id': ids[i+j],
-                                    'alert_id': alert_id,
+                                    'id': alert_id,
+                                    'camera-id': camera_id,
+                                    '#date': get_timestamp(),
                                     }
-                                print(data, 'POST', social_distance_url)
-                                #x = threading.Thread(target=send_json, args=(data, 'POST', social_distance_url,))
-                                #x.start()
+                                #data = {'id': camera_id}
+                                #social_distance_url = 'https://mit.kairosconnect.app/tx/device.getConfigByProcessDevice'
+                                #send_json(data, 'PUT', social_distance_url)
+                                x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
+                                x.start()
                     else:
                         # add element if not exist on the dictonary
                         dict_of_ids[str(ids[i-1])]['inner_ids'].update(

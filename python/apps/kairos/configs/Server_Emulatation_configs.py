@@ -4,23 +4,17 @@ config = {
             'token_file': '.token',
             },
         'cameras': {
-            'DTevar-culhuacan-34:56:fe:22:22:22': 
+            'DTevar-culhuacan-34:56:fe:22:22:22_FAKE_ID': 
                 {
                 'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
                 'aforo': {
                     'enabled': True,
-                    'reference_line': {
-                        'outside_area': 1, 
-                        'coordinates': [(540, 610), (1020, 410)], 
-                        'width': 5, 
-                        'color': [1, 1, 1, 1],
-                        }, 
                     'area_of_interest': {
-                        'type': 'horizontal',
-                        'up': 90,
-                        'down': 90,
-                        'left': 0,
-                        'right': 0,
+                        'type': 'fixed',
+                        'topx': 600,
+                        'topy': 300,
+                        'width': 230,
+                        'height': 230,
                         }, # type = follow, fixed, horizontal ['horizontal' is the default]
                     },
                 'social_distance': {
@@ -35,6 +29,57 @@ config = {
 
 
 '''
+                'aforo': {
+                    'enabled': True,
+                    'reference_line': {
+                        'outside_area': 1, 
+                        'coordinates': [(660, 500), (1000, 500)], 
+                        'width': 5, 
+                        'color': [1, 1, 1, 1],
+                        }, 
+                    'area_of_interest': {
+                        'type': 'horizontal',
+                        'up': 90,
+                        'down': 90,
+                        'left': 0,
+                        'right': 0,
+                        },
+                    },
+
+
+
+
+                'aforo': {
+                    'enabled': True,
+                    },
+
+
+                    'area_of_interest': {
+                        'type': 'fixed',
+                        'topx': 500,
+                        'topy': 200,
+                        'width': 280,
+                        'height': 280,
+                        }, # type = follow, fixed, horizontal ['horizontal' is the default]
+
+
+
+
+                    'reference_line': {
+                        'outside_area': 1, 
+                        'coordinates': [(660, 300), (660, 630)], 
+                        'width': 5, 
+                        'color': [1, 1, 1, 1],
+                        }, 
+                    'area_of_interest': {
+                        'type': 'horizontal',
+                        'up': 0,
+                        'down': 0,
+                        'left': 80,
+                        'right': 80,
+                        },
+
+
 
 config = {
         'server': {
