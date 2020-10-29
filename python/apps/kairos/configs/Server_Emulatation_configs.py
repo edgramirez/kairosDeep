@@ -6,7 +6,7 @@ config = {
         'cameras': {
             'DTevar-culhuacan-34:56:fe:22:22:22_FAKE_ID': 
                 {
-                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
+                'source': "rtsp://192.168.128.3:9000/live",
                 'aforo': {
                     'enabled': True,
                     'area_of_interest': {
