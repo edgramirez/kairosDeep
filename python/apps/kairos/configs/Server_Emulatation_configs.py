@@ -6,16 +6,22 @@ config = {
         'cameras': {
             'DTevar-culhuacan-34:56:fe:22:22:22_FAKE_ID': 
                 {
-                'source': "rtsp://192.168.128.3:9000/live",
+                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
                 'aforo': {
                     'enabled': True,
+                    'reference_line': {
+                        'outside_area': 1, 
+                        'coordinates': [(660, 500), (1000, 500)], 
+                        'width': 5, 
+                        'color': [1, 1, 1, 1],
+                        }, 
                     'area_of_interest': {
-                        'type': 'fixed',
-                        'topx': 600,
-                        'topy': 300,
-                        'width': 230,
-                        'height': 230,
-                        }, # type = follow, fixed, horizontal ['horizontal' is the default]
+                        'type': 'horizontal',
+                        'up': 90,
+                        'down': 90,
+                        'left': 0,
+                        'right': 0,
+                        },
                     },
                 'social_distance': {
                     'enabled': False,
@@ -29,6 +35,15 @@ config = {
 
 
 '''
+                    'area_of_interest': {
+                        'type': 'fixed',
+                        'topx': 600,
+                        'topy': 300,
+                        'width': 230,
+                        'height': 230,
+                        }, # type = follow, fixed, horizontal ['horizontal' is the default]
+
+
                 'aforo': {
                     'enabled': True,
                     'reference_line': {
@@ -89,7 +104,7 @@ config = {
         'cameras': {
             'DTevar-culhuacan-34:56:fe:22:22:22': 
                 {
-                'source': 'file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv',
+                'source': "rtsp://192.168.128.3:9000/live",
                 'aforo': {
                     'enabled': True,
                     'reference_line': {

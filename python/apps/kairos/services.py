@@ -374,24 +374,27 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
     if rectangle:
         # si el punto esta afuera del area de interes no evaluamos
         if box[0] < rectangle[0] or box[0] > rectangle[4] or box[1] > rectangle[5] and box[1] < rectangle[1]:
-            return entradas, salidas
+            if reference_line:
+                return entradas, salidas
+            else:
+                outside_area = 1
+                area = 1
 
     if reference_line:
         if check_if_object_is_in_area2(box, reference_line, m, b):
             area = 2
         else:
             area = 1
-
-        if outside_area == 1:
-            direction_1_to_2 = 1
-            direction_2_to_1 = 0
-        else:
-            direction_1_to_2 = 0
-            direction_2_to_1 = 1
-    elif reference_line is None and rectangle:
+    else:
+        outside_area = 1
         area = 2
+
+    if outside_area == 1:
         direction_1_to_2 = 1
         direction_2_to_1 = 0
+    else:
+        direction_1_to_2 = 0
+        direction_2_to_1 = 1
 
     if object_id not in initial:
         initial.update({object_id: area})
@@ -402,7 +405,7 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
 
     # De igual forma si los elementos continen las misma areas en el estado 
     # actual que en el previo, entonces no tiene caso evaluar mas
-    print(object_id, initial, last)
+    #print(object_id, initial, last)
     if initial[object_id] == last[object_id]:
         return entradas, salidas
 
@@ -414,7 +417,7 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
                     'camera-id': camera_id,
                     '#date-start': time_in_epoc,
                     '#date-end': time_in_epoc,
-                    }
+                }
             initial.update({item: 2})
 
             print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",time_in_epoc)
@@ -433,7 +436,7 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
                     'camera-id': camera_id,
                     '#date-start': time_in_epoc,
                     '#date-end': time_in_epoc,
-                    }
+                }
             initial.update({item: 1})
 
             print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",time_in_epoc)

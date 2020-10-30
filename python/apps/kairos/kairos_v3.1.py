@@ -658,8 +658,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             if is_aforo_enabled:
                 if aforo_info['area_of_interest']['values']:
                     #aa = service.is_point_insde_polygon(x, y, polygon_sides, polygon)
-                    #print('aaaaaaaaaaaaaaaaaaaaaaa', aforo_info['area_of_interest'])
-
                     #if aforo_info['area_of_interest']['type'] == 'fixed' and x > TopLeftx and x < (TopLeftx + Width) and y < (TopLefty + Height) and y > TopLefty:
                     if aforo_info['area_of_interest']['type'] == 'fixed':
                         entrada, salida = get_entrada_salida(camera_id)
