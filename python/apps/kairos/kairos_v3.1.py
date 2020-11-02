@@ -101,7 +101,7 @@ global srv_url
 global token_file
 global entradas_salidas
 global initial_last_disappeared
-global dict_of_ids_list
+global social_distance_ids
 
 initial_last_disappeared = {}
 source_list = []
@@ -110,12 +110,7 @@ people_counting_list = []
 camera_list = []
 social_distance_list = {}
 entradas_salidas = {}
-dict_of_ids_list = {}
-
-
-def get_socialt_distance_dict_of_ids(key_id):
-    global dict_of_ids_list
-    return dict_of_ids_list[key_id]
+social_distance_ids = {}
 
 
 def set_initial_last_disappeared(key_id):
@@ -166,14 +161,17 @@ def set_social_distance(key_id, social_distance_data):
     if not isinstance(social_distance_data['tolerated_distance'], int) and social_distance_data['tolerated_distance'] > 3:
         log_error("'social_distance_data.tolarated_distance' parameter, most be and integer bigger than 3 pixels")
 
-    if not isinstance(social_distance_data['persistence_time'], int) and social_distance_data['persistence_time'] > -1:
-        log_error("'social_distance_data.persistence_time' parameter, most be a positive integer")
+    if not (isinstance(social_distance_data['persistence_time'], int) or isinstance(social_distance_data['persistence_time'], float)) and social_distance_data['persistence_time'] > -1:
+        log_error("'social_distance_data.persistence_time' parameter, most be a positive integer/floater")
+
+    social_distance_data.update({'persistence_time': social_distance_data['persistence_time'] * 1000})
 
     social_distance_list.update(
             {
                 key_id: social_distance_data
             })
-    social_distance_list[key_id].update({'dict_of_ids_list': {}})
+
+    social_distance_list[key_id].update({'social_distance_ids': {}})
 
 
 def get_social_distance(key_id, key = None):
@@ -345,8 +343,8 @@ def validate_socialdist_values(data):
     if not isinstance(data['tolerated_distance'], int) and data['tolerated_distance'] > 0:
         log_error("tolerated_distance element, most be a positive integer")
 
-    if not isinstance(data['persistence_time'], int) and data['persistence_time'] > 0:
-        log_error("persistence_time element, most a be positive integer")
+    if not (isinstance(data['persistence_time'], int) or isinstance(data['persistence_time'], float)) and data['persistence_time'] > 0:
+        log_error("persistence_time element, most a be positive integer/floater")
 
     return True
 
@@ -622,9 +620,14 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     if is_social_distance_enabled:
         service.set_social_distance_url(srv_url)
-        nfps = 19 # HARDCODED TILL GET THE REAL VALUE
-        risk_value = nfps * social_distance_info['persistence_time']
+        nfps = 8 # HARDCODED TILL GET THE REAL VALUE
+
+        persistence_time = social_distance_info['persistence_time']
         tolerated_distance = social_distance_info['tolerated_distance']
+        max_side_plus_side = tolerated_distance * 1.42
+        detected_ids = social_distance_info['social_distance_ids']
+
+        risk_value = nfps * persistence_time # TODO esta valor no se necesitara en al version 3.2
 
     while l_frame is not None:
         try:
@@ -638,6 +641,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         
         ids = []
         boxes = []
+        ids_and_boxes = {}
 
         # Ciclo interno donde se evaluan los objetos dentro del frame
         while l_obj is not None: 
@@ -654,6 +658,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             # Service Aforo (in and out)
             ids.append(obj_meta.object_id)
             boxes.append((x, y))
+            ids_and_boxes.update({obj_meta.object_id: (x, y)})
 
             if is_aforo_enabled:
                 if aforo_info['area_of_interest']['values']:
@@ -712,8 +717,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         if is_social_distance_enabled:
             boxes_length = len(boxes) # if only 1 object is present there is no need to calculate the distance
             if boxes_length > 1:
-                service.set_frame_counter(frame_number)
-                service.social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, social_distance_info['dict_of_ids_list'])
+                #service.set_frame_counter(frame_number)
+                #service.social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, detected_ids)
+                service.social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
+
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
         #====================== FIN de definicion de valores de mensajes a pantalla
 

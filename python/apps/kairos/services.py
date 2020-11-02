@@ -450,6 +450,131 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
 
     return entradas, salidas
 
+
+def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids):
+    '''
+    social distance is perform in pairs of not repeated pairs
+    Being (A, B, C, D, E, F) the set of detected objects
+
+    The possible permutation are:
+
+       AB AC AD AE AF
+          BC BD BE BF
+             CD CE CF
+                DE DF
+                   Ef
+
+    We are going to start compararing the first element (index=0 or i=0)
+    '''
+    # TODO: diccionario puede crecer mucho depurarlo comparando los elementos que dejen de existir o no sean detectados despues de 5seg')
+
+    # sorting elements to always have the same evaluation order 
+    ids = [ item for item in ids_and_boxes.keys() ]
+    ids.sort()
+    # creating the list 
+    i = 1
+    for pivot in ids[:-1]:
+        for inner in ids[i:]:
+            if pivot not in detected_ids:
+                Ax = ids_and_boxes[pivot][0]
+                x = ids_and_boxes[inner][0]
+    
+                if Ax > x:
+                    dx = Ax -x
+                else:
+                    dx = x - Ax
+    
+                if dx < tolerated_distance:
+                    Ay = ids_and_boxes[pivot][1]
+                    y = ids_and_boxes[inner][1]
+
+                    if Ay > y:
+                        dy = Ay - y
+                    else:
+                        dy = y - Ay
+
+                    if (dx + dy) < max_side_plus_side and sqrt((dx*dx) + (dy*dy)) < tolerated_distance:
+                        # first time detection for pivot A and associated B
+                        pivot_time = get_timestamp()
+                        detected_ids.update({
+                            pivot: {
+                                inner:{
+                                    '#detected_at': pivot_time,
+                                    '#reported_at': None,
+                                    'reported': False,
+                                    }
+                                }
+                            })
+            else:
+                if inner not in detected_ids[pivot]:
+                    Ax = ids_and_boxes[pivot][0]
+                    x = ids_and_boxes[inner][0]
+        
+                    if Ax > x:
+                        dx = Ax -x
+                    else:
+                        dx = x - Ax
+        
+                    if dx < tolerated_distance:
+                        Ay = ids_and_boxes[pivot][1]
+                        y = ids_and_boxes[inner][1]
+
+                        if Ay > y:
+                            dy = Ay - y
+                        else:
+                            dy = y - Ay
+
+                        if (dx + dy) < max_side_plus_side and sqrt((dx*dx) + (dy*dy)) < tolerated_distance:
+                            # firt time detection for associated C is registered
+                            detected_at_inner = get_timestamp()
+                            detected_ids[pivot].update({
+                                inner:{
+                                    '#detected_at': detected_at_inner,
+                                    '#reported_at': None,
+                                    'reported': False,
+                                    }
+                                })
+                else:
+                    Ax = ids_and_boxes[pivot][0]
+                    x = ids_and_boxes[inner][0]
+        
+                    if Ax > x:
+                        dx = Ax -x
+                    else:
+                        dx = x - Ax
+
+                    if dx > tolerated_distance:
+                        if not detected_ids[pivot][inner]['reported']:
+                            del detected_ids[pivot][inner]
+                    else:
+                        Ay = ids_and_boxes[pivot][1]
+                        y = ids_and_boxes[inner][1]
+
+                        if Ay > y:
+                            dy = Ay - y
+                        else:
+                            dy = y - Ay
+
+                        if (dx + dy) >= max_side_plus_side or sqrt((dx*dx) + (dy*dy)) >= tolerated_distance:
+                            del detected_ids[pivot][inner]
+                        else:
+                            current_time = get_timestamp()
+                            initial_time = detected_ids[pivot][inner]['#detected_at']
+                            if not detected_ids[pivot][inner]['reported'] and (current_time - initial_time) >= persistence_time:
+                                detected_ids[pivot][inner].update({'#reported_at': current_time})
+                                detected_ids[pivot][inner].update({'reported': True})
+                                alert_id = str(pivot) + '_and_'+ str(inner)
+                                data = {
+                                    'id': alert_id,
+                                    'camera-id': camera_id,
+                                    '#date': current_time,
+                                    }
+                                print('Social distance', data, social_distance_url, 'PUT', 'distance=', sqrt((dx*dx) + (dy*dy)), 'tolarada:', tolerated_distance)
+                                x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
+                                x.start()
+            i += 1
+
+
 def social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, dict_of_ids):
     # distance_plus_factor = 'tolerated_distance' * 1.42
     # nfps
