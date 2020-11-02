@@ -101,5 +101,5 @@ eps=0.7
 minBoxes=1
 group-threshold=1
 
-#detected-max-w=280
-detected-max-h=400
+detected-max-w=180
+#detected-max-h=500
