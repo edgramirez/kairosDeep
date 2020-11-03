@@ -6,7 +6,7 @@ config = {
         'cameras': {
             'DTevar-culhuacan-34:56:fe:a3:99:de':
                 {
-                'source': "rtsp://192.168.128.3:9000/live",
+                'source': "file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv",
                 'aforo': {
                     'enabled': False,
                     'reference_line': {
@@ -28,12 +28,15 @@ config = {
                     'tolerated_distance': 100,
                     'persistence_time': 1,
                     },
+                'people_counting': {
+                    'enabled': False,
+                    },
                 },
             'CajaLosAndes-ac:17:c8:62:08:5b': 
                 {
-                'source': "rtsp://192.168.127.2:9000/live",
+                'source': "file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv",
                 'aforo': {
-                    'enabled': True,
+                    'enabled': False,
                     'reference_line': {
                         'outside_area': 1, 
                         'coordinates': [(750, 440), (1400, 370)], 
@@ -49,10 +52,15 @@ config = {
                         },
                     },
                 'social_distance': {
-                    'enabled': True,
+                    'enabled': False,
                     'tolerated_distance': 150,
                     'persistence_time': .01,
+                    },
+                'people_counting': {
+                    'enabled': True,
                     },
                 },
             },
         }
+#                'source': "rtsp://192.168.128.3:9000/live",
+#                'source': "rtsp://192.168.127.2:9000/live",

@@ -23,6 +23,7 @@ global aforo_enabled
 global social_distance_enabled
 global aforo_url
 global social_distance_url
+global people_counting_url
 
 
 first_time_set = set()
@@ -46,14 +47,9 @@ def set_social_distance_url(srv_url):
     social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
 
 
-########## need corretion as in set_aforo_url()
-def get_service_count_intersecting_in_any_direction_url():
-    return get_server_url() + '/SERVICE_NOT_DEFINED_'
-
-
-def set_service_people_counting_url():
-    return get_server_url() + '/SERVICE_NOT_DEFINED_'
-######################
+def set_service_people_counting_url(srv_url):
+    global people_counting_url
+    people_counting_url = srv_url + 'SERVICE_NOT_DEFINED_'
 
 
 def set_frame_counter(value):
@@ -292,25 +288,20 @@ def count_in_and_out_when_object_leaves_the_frame(ids, camera_id, outside_area):
         last.pop(item)
 
 
-def people_counting_storing_fist_time(object_id, camera_id):
+def people_counting(camera_id, total_objects):
     '''
-    Storing only the first time the ID appears
+    Sending only the total of detected objects
     '''
-    global first_time_set
+    global people_counting_url
 
-    srv_url = get_service_people_counting_url()
-
-    if object_id not in first_time_set:
-        data = {
-                'camera-id': camera_id,
-                '#date': get_timestamp(),
-                'object_id': object_id,
-                }
-        print('People_counting first time..POST', data)
-        x = threading.Thread(target=send_json, args=(data, 'POST', srv_url))
-        x.start()
-        #send_json(data, 'POST', srv_url)
-        first_time_set.add(object_id)
+    data = {
+            'camera-id': camera_id,
+            '#total_updated_at': get_timestamp(),
+            'object_id': total_objects,
+            }
+    #print('People_counting first time..POST', data, people_counting_url)
+    #x = threading.Thread(target=send_json, args=(data, 'POST', srv_url))
+    #x.start()
 
 
 def people_counting_last_time_detected(ids, camera_id):

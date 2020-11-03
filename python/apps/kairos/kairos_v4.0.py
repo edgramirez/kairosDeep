@@ -94,7 +94,8 @@ fps_streams = {}
 
 global aforo_list
 global social_distance_list
-global people_counting_list
+global people_distance_list
+global people_counting_counters
 global camera_list
 global source_list
 global srv_url
@@ -106,7 +107,8 @@ global social_distance_ids
 initial_last_disappeared = {}
 source_list = []
 aforo_list = {}
-people_counting_list = []
+people_distance_list = {}
+people_counting_counters = {}
 camera_list = []
 social_distance_list = {}
 entradas_salidas = {}
@@ -136,17 +138,36 @@ def get_disappeared(key_id):
     return initial_last_disappeared[key_id][2]
 
 
-def set_people_counting(value):
-    global people_counting_list
-    people_counting_list.append(value)
+def get_people_counting_counter(key_id):
+    global people_counting_counters
+
+    if key_id and key_id in people_counting_counters.keys():
+        return people_counting_counters[key_id]
 
 
-def get_people_counting(index = None, key = None):
-    global people_counting_list
-    if index is None:
-        return people_counting_list
-    else:
-        return people_counting_list[index][key]
+def set_people_counting_counter(key_id, value):
+    global people_counting_counters
+
+    if key_id is not None and isinstance(value, int) and value > -1:
+        people_counting_counters.update({key_id: value})
+
+
+def set_people_counting(key_id, people_couting_data):
+    global people_distance_list
+
+    if not isinstance(people_couting_data, dict):
+        log_error("'people_counting_data' parameter, most be a dictionary")
+
+    if people_couting_data['enabled'] not in [True, False]:
+        log_error("'people_counting_data' parameter, most be True or False")
+
+    people_distance_list[key_id] = people_couting_data
+    set_people_counting_counter(key_id, 0)
+
+
+def get_people_counting(key_id):
+    global people_distance_list
+    return people_distance_list[key_id]
 
 
 def set_social_distance(key_id, social_distance_data):
@@ -203,6 +224,7 @@ def get_aforo(key_id, key = None, second_key = None):
 
 def set_sources(value):
     global source_list
+
     if value:
         source_list.append(value)
 
@@ -214,13 +236,14 @@ def get_sources():
 
 def set_camera(value):
     global camera_list
+
     if value:
         camera_list.append(value)
 
 
-def get_camera_id(index):
+def get_camera_id(key_id):
     global camera_list
-    return camera_list[index]
+    return camera_list[key_id]
 
 
 def set_server_url(url):
@@ -345,6 +368,16 @@ def validate_socialdist_values(data):
 
     if not (isinstance(data['persistence_time'], int) or isinstance(data['persistence_time'], float)) and data['persistence_time'] > 0:
         log_error("persistence_time element, most a be positive integer/floater")
+
+    return True
+
+
+def validate_people_counting_values(data):
+
+    validate_keys('people_counting', data, ['enabled'])
+
+    if not isinstance(data['enabled'], bool):
+        log_error("'people_counting' parameter, most be True or False, current value: {}".format(data['enabled']))
 
     return True
 
@@ -494,9 +527,11 @@ def reading_server_config():
             elif key == 'social_distance' and validate_socialdist_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_social_distance(camera, scfg['cameras'][camera][key])
                 activate_service = True
-            elif key == 'people_counting' and scfg['cameras'][camera][key]['enabled']:
-                set_people_counting(scfg['cameras'][camera][key])
+            elif key == 'people_counting' and validate_people_counting_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
+                set_people_counting(camera, scfg['cameras'][camera][key])
                 activate_service = True
+            else:
+                continue
 
         if activate_service:
             set_camera(camera)
@@ -540,6 +575,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     social_distance_info = get_social_distance(camera_id)
     is_social_distance_enabled = social_distance_info['enabled']
+
+    people_counting_info = get_people_counting(camera_id)
+    is_people_counting_enabled = people_counting_info['enabled']
 
     # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
     display_meta.num_labels = 1                            # numero de textos
@@ -620,14 +658,13 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     if is_social_distance_enabled:
         service.set_social_distance_url(srv_url)
-        nfps = 8 # HARDCODED TILL GET THE REAL VALUE, before 19
+        #nfps = 8 # HARDCODED TILL GET THE REAL VALUE, before 19
 
         persistence_time = social_distance_info['persistence_time']
         tolerated_distance = social_distance_info['tolerated_distance']
         max_side_plus_side = tolerated_distance * 1.42
         detected_ids = social_distance_info['social_distance_ids']
-
-        risk_value = nfps * persistence_time # TODO esta valor no se necesitara en al version 3.2
+        #risk_value = nfps * persistence_time # TODO esta valor no se necesitara en al version 3.2
 
     while l_frame is not None:
         try:
@@ -722,8 +759,16 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 #service.set_frame_counter(frame_number)
                 #service.social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, detected_ids)
                 service.social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
-
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
+
+        if is_people_counting_enabled:
+            if obj_counter[PGIE_CLASS_ID_PERSON] != get_people_counting_counter(camera_id):
+                service.set_service_people_counting_url(srv_url)
+                #print(camera_id, ' anterior, actual:',get_people_counting_counter(camera_id), obj_counter[PGIE_CLASS_ID_PERSON])
+                set_people_counting_counter(camera_id, obj_counter[PGIE_CLASS_ID_PERSON])
+                service.people_counting(camera_id, obj_counter[PGIE_CLASS_ID_PERSON])
+
+
         #====================== FIN de definicion de valores de mensajes a pantalla
 
         # Lo manda a directo streaming
