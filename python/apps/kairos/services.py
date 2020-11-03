@@ -293,8 +293,11 @@ def people_counting(camera_id, total_objects):
     Sending only the total of detected objects
     '''
     global people_counting_url
-
+    
+    date = get_timestamp()
+    alert_id = str(camera_id) + '_' + str(date)
     data = {
+            'id': alert_id,
             'camera-id': camera_id,
             '#total_updated_at': get_timestamp(),
             'object_id': total_objects,
