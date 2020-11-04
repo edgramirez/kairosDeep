@@ -118,6 +118,7 @@ social_distance_ids = {}
 def set_initial_last_disappeared(key_id):
     global initial_last_disappeared
     initial_last_disappeared.update({key_id: [{}, {}, []]})
+    set_entrada_salida(key_id, 0, 0)
 
 
 def get_initial_last(key_id):
@@ -165,11 +166,6 @@ def set_people_counting(key_id, people_couting_data):
     set_people_counting_counter(key_id, 0)
 
 
-def get_people_counting(key_id):
-    global people_distance_list
-    return people_distance_list[key_id]
-
-
 def set_social_distance(key_id, social_distance_data):
     global social_distance_list
 
@@ -195,16 +191,26 @@ def set_social_distance(key_id, social_distance_data):
     social_distance_list[key_id].update({'social_distance_ids': {}})
 
 
+def get_people_counting(key_id):
+    global people_distance_list
+
+    if key_id not in people_distance_list.keys():
+        return {'enabled': False}
+
+    return people_distance_list[key_id]
+
+
 def get_social_distance(key_id, key = None):
     global social_distance_list
 
-    if social_distance_list and key_id in social_distance_list.keys():
+    if key_id not in social_distance_list.keys():
+        return {'enabled': False}
+
+    if social_distance_list:
         if key:
             return social_distance_list[key_id][key]
         else:
             return social_distance_list[key_id]
-
-    return {'enabled': False}
 
 
 def get_aforo(key_id, key = None, second_key = None):
@@ -522,7 +528,6 @@ def reading_server_config():
             if key == 'aforo' and validate_aforo_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_aforo(camera, scfg['cameras'][camera][key])
                 set_initial_last_disappeared(camera)
-                set_entrada_salida(camera, 0, 0)
                 activate_service = True
             elif key == 'social_distance' and validate_socialdist_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_social_distance(camera, scfg['cameras'][camera][key])
