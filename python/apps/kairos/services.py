@@ -295,11 +295,11 @@ def people_counting(camera_id, total_objects):
     global people_counting_url
     
     date = get_timestamp()
-    alert_id = str(camera_id) + '_' + str(date)
+    alert_id = str(date) + '_' + str(camera_id) + '_' + str(date)
     data = {
             'id': alert_id,
             'camera-id': camera_id,
-            '#total_updated_at': get_timestamp(),
+            '#total_updated_at': date,
             'object_id': total_objects,
             }
     #print('People_counting first time..POST', data, people_counting_url)
@@ -406,7 +406,9 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
     for item in last.keys():
         if initial[item] == 1 and last[item] == 2:
             time_in_epoc = get_timestamp()
+            data_id = str(time_in_epoc) + '_' + str(object_id)
             data = {
+                    'id': data_id,
                     'direction': direction_1_to_2,
                     'camera-id': camera_id,
                     '#date-start': time_in_epoc,
@@ -425,7 +427,9 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
 
         elif initial[item] == 2 and last[item] == 1:
             time_in_epoc = get_timestamp()
+            data_id = str(time_in_epoc) + '_' + str(object_id)
             data = {
+                    'id': data_id,
                     'direction': direction_2_to_1,
                     'camera-id': camera_id,
                     '#date-start': time_in_epoc,
@@ -557,7 +561,7 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
                             if not detected_ids[pivot][inner]['reported'] and (current_time - initial_time) >= persistence_time:
                                 detected_ids[pivot][inner].update({'#reported_at': current_time})
                                 detected_ids[pivot][inner].update({'reported': True})
-                                alert_id = str(pivot) + '_and_'+ str(inner)
+                                alert_id = str(current_time) + '_' +  str(pivot) + '_and_'+ str(inner)
                                 data = {
                                     'id': alert_id,
                                     'camera-id': camera_id,
