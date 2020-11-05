@@ -695,16 +695,23 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             except StopIteration:
                 break           
 
+            #x = obj_meta.rect_params.width
+            #y = obj_meta.rect_params.height
             obj_counter[obj_meta.class_id] += 1
-            x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2) #x = obj_meta.rect_params.left
-            y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) #y = obj_meta.rect_params.top
+            ids.append(obj_meta.object_id)
+            x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2)
+
+            if is_social_distance_enabled:
+                # centroide al pie
+                #y = obj_meta.rect_params.top + obj_meta.rect_params.height
+                y = int(obj_meta.rect_params.height + obj_meta.rect_params.top)
+                ids_and_boxes.update({obj_meta.object_id: (x, y)})
 
             # Service Aforo (in and out)
-            ids.append(obj_meta.object_id)
-            boxes.append((x, y))
-            ids_and_boxes.update({obj_meta.object_id: (x, y)})
-
             if is_aforo_enabled:
+                y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) 
+                boxes.append((x, y))
+
                 if aforo_info['area_of_interest']['values']:
                     #aa = service.is_point_insde_polygon(x, y, polygon_sides, polygon)
                     #if aforo_info['area_of_interest']['type'] == 'fixed' and x > TopLeftx and x < (TopLeftx + Width) and y < (TopLefty + Height) and y > TopLefty:
@@ -759,10 +766,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 disappeared = elements_to_delete
 
         if is_social_distance_enabled:
-            boxes_length = len(boxes) # if only 1 object is present there is no need to calculate the distance
+            boxes_length = len(ids_and_boxes) # if only 1 object is present there is no need to calculate the distance
             if boxes_length > 1:
                 #service.set_frame_counter(frame_number)
-                #service.social_distance(boxes, ids, boxes_length, camera_id, nfps, risk_value, tolerated_distance, detected_ids)
                 service.social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
 
