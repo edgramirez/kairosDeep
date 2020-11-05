@@ -189,7 +189,6 @@ def is_point_insde_polygon(x, y, polygon_length, polygon):
                         xinters = (y-p1y)*(p2x-p1x)/(p2y-p1y)+p1x
                     if p1x == p2x or x <= xinters:
                         # returns True if x,y are inside
-                        print('es True....')
                         return True
         p1x,p1y = p2x,p2y
 
@@ -567,7 +566,7 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
                                     'camera-id': camera_id,
                                     '#date': current_time,
                                     }
-                                print('Social distance', data, social_distance_url, 'PUT', 'distance=', sqrt((dx*dx) + (dy*dy)), 'tolarada:', tolerated_distance)
+                                print('Social distance', data, social_distance_url, 'PUT', 'distance=', sqrt((dx*dx) + (dy*dy)), 'tolerada:', tolerated_distance)
                                 x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
                                 x.start()
             i += 1
