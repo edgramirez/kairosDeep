@@ -253,18 +253,27 @@ def get_camera_id(key_id):
 
 
 def set_server_url(url):
-    global srv_url
-    srv_url = url
+    if isinstance(url, str):
+        global srv_url
+        srv_url = url
+        return True
+    log_error("'url' parameter, most be a valid string")
 
 
 def set_token(token_file_name):
-    global token_file
-    token_file = token_file_name
+    if isinstance(token_file_name, str) and service.file_exists(token_file_name):
+        global token_file
+        token_file = token_file_name
+        return True
+    log_error("'token_file_name={}' parameter, most be a valid string".format(token_file_name))
 
 
 def set_number_of_resources(num):
-    global number_of_resources
-    number_of_resources = num
+    if isinstance(num, int):
+        global number_of_resources
+        number_of_resources = num
+        return True
+    log_error("'num={}' parameter, most be integer".format(num))
 
 
 def set_entrada_salida(key_id, entrada, salida):
@@ -511,9 +520,14 @@ def set_aforo(key_id, aforo_data):
 def reading_server_config():
     from configs.Server_Emulatation_configs import config as scfg
 
+    if service.set_header(scfg['server']['token_file']):
+        log_error("Unable to set the 'Token' using parameter: {}".format(scfg['server']['token_file']))
+
     # setup the services for each camera
     set_server_url(scfg['server']['url'])
-    set_token(scfg['server']['token_file'])
+    global srv_url
+
+    # setup the services for each camera
     set_number_of_resources(len(scfg['cameras']))
 
     for camera in scfg['cameras'].keys():
@@ -527,13 +541,16 @@ def reading_server_config():
 
             if key == 'aforo' and validate_aforo_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_aforo(camera, scfg['cameras'][camera][key])
+                service.set_aforo_url(srv_url)
                 set_initial_last_disappeared(camera)
                 activate_service = True
             elif key == 'social_distance' and validate_socialdist_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_social_distance(camera, scfg['cameras'][camera][key])
+                service.set_social_distance_url(srv_url)
                 activate_service = True
             elif key == 'people_counting' and validate_people_counting_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
                 set_people_counting(camera, scfg['cameras'][camera][key])
+                service.set_service_people_counting_url(srv_url)
                 activate_service = True
             else:
                 continue
@@ -544,12 +561,8 @@ def reading_server_config():
 
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
-
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
-    global srv_url
-    global token_file
-    service.set_header(token_file)
 
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
@@ -604,7 +617,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     py_nvosd_text_params.text_bg_clr.alpha = 1.0
 
     if is_aforo_enabled:
-        service.set_aforo_url(srv_url)
         reference_line = aforo_info['coordinates']
 
         #------------------------------------------- display info
@@ -662,7 +674,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             py_nvosd_rect_params.border_color.alpha = 1.0
 
     if is_social_distance_enabled:
-        service.set_social_distance_url(srv_url)
         #nfps = 8 # HARDCODED TILL GET THE REAL VALUE, before 19
 
         persistence_time = social_distance_info['persistence_time']
@@ -768,13 +779,11 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         if is_social_distance_enabled:
             boxes_length = len(ids_and_boxes) # if only 1 object is present there is no need to calculate the distance
             if boxes_length > 1:
-                #service.set_frame_counter(frame_number)
                 service.social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
 
         if is_people_counting_enabled:
             if obj_counter[PGIE_CLASS_ID_PERSON] != get_people_counting_counter(camera_id):
-                service.set_service_people_counting_url(srv_url)
                 #print(camera_id, ' anterior, actual:',get_people_counting_counter(camera_id), obj_counter[PGIE_CLASS_ID_PERSON])
                 set_people_counting_counter(camera_id, obj_counter[PGIE_CLASS_ID_PERSON])
                 service.people_counting(camera_id, obj_counter[PGIE_CLASS_ID_PERSON])
