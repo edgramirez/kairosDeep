@@ -563,7 +563,6 @@ def reading_server_config():
 def tiler_src_pad_buffer_probe(pad, info, u_data):
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
-
     obj_counter = {
             PGIE_CLASS_ID_VEHICLE: 0,
             PGIE_CLASS_ID_PERSON: 0,
@@ -674,8 +673,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             py_nvosd_rect_params.border_color.alpha = 1.0
 
     if is_social_distance_enabled:
-        #nfps = 8 # HARDCODED TILL GET THE REAL VALUE, before 19
-
         persistence_time = social_distance_info['persistence_time']
         tolerated_distance = social_distance_info['tolerated_distance']
         max_side_plus_side = tolerated_distance * 1.42
@@ -714,12 +711,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
             if is_social_distance_enabled:
                 # centroide al pie
-                #y = obj_meta.rect_params.top + obj_meta.rect_params.height
                 y = int(obj_meta.rect_params.height + obj_meta.rect_params.top)
                 ids_and_boxes.update({obj_meta.object_id: (x, y)})
 
             # Service Aforo (in and out)
             if is_aforo_enabled:
+                # centroide al hombligo
                 y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) 
                 boxes.append((x, y))
 
@@ -760,25 +757,24 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             Este bloque limpia los dictionarios initial y last, recolectando los ID que 
             no ya estan en la lista actual, es decir, "candidatos a ser borrados" y 
             despues es una segunda corroboracion borrandolos
+            15 se elige como valor maximo en el cual un id puede desaparecer, es decir, si un id desaparece por 15 frames, no esperamos
+            recuperarlo ya
             '''
-            if frame_number % 50 == 0:
+            if frame_number % 15 == 0:
                 disappeared = get_disappeared(camera_id)
                 initial, last = get_initial_last(camera_id)
                 if disappeared:
-                    elements_to_delete = [ key for key in last.keys() if key not in ids and key in disappeared ]
-                    for x in elements_to_delete:
+                    elements_to_be_delete = [ key for key in last.keys() if key not in ids and key in disappeared ]
+                    for x in elements_to_be_delete:
                         last.pop(x)
                         initial.pop(x)
                     set_disappeared(camera_id)
                 else:
-                    elements_to_delete = [ key for key in last.keys() if key not in ids ]
-                    set_disappeared(camera_id, elements_to_delete)
-
-                disappeared = elements_to_delete
+                    elements_to_be_delete = [ key for key in last.keys() if key not in ids ]
+                    set_disappeared(camera_id, elements_to_be_delete)
 
         if is_social_distance_enabled:
-            boxes_length = len(ids_and_boxes) # if only 1 object is present there is no need to calculate the distance
-            if boxes_length > 1:
+            if len(ids_and_boxes) > 1: # if only 1 object is present there is no need to calculate the distance
                 service.social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
 
@@ -787,7 +783,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 #print(camera_id, ' anterior, actual:',get_people_counting_counter(camera_id), obj_counter[PGIE_CLASS_ID_PERSON])
                 set_people_counting_counter(camera_id, obj_counter[PGIE_CLASS_ID_PERSON])
                 service.people_counting(camera_id, obj_counter[PGIE_CLASS_ID_PERSON])
-
 
         #====================== FIN de definicion de valores de mensajes a pantalla
 

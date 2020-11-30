@@ -172,7 +172,7 @@ def send_json(payload, action, url = None, **options):
     data = json.dumps(payload)
 
     # emilio comenta esto para insertar en MongoDB
-    return True
+    # return True
 
     for retry in range(retries):
         try:
@@ -203,56 +203,6 @@ def send_json(payload, action, url = None, **options):
                 raise Exception("Too many redirection in {} retries\n. Original exception".format(retry, str(e)))
 
 
-def count_in_and_out_when_object_leaves_the_frame(ids, camera_id, outside_area):
-    '''
-    The area A1 is the one closer to the point (0,0)
-    Area A1 is by default outside 
-    Area A2 is by default inside 
-    ** This could be modified by setting up the configuration parameter "outside_area" to 2, (by default is 1)
-    '''
-    global aforo_url
-    elements_to_delete = set()
-    direction_1_to_2 = outside_area % 2
-    direction_2_to_1 = outside_area + 1 % 2
-
-    # se evaluan los elementos en last asi se garantiza que ese ID tiene al menos un registro en el dictionario "initial" y al menos uno en "last"
-    for item in last.keys():
-        if item not in ids:
-            if initial[item] == 1 and last[item] == 2:
-                # value #date-end is not needed, just for compatibility we hardcode this value
-                # 'id': str(item),
-                date_time_epoc = get_timestamp()
-                data = {
-                        'direction': direction_1_to_2,
-                        'camera-id': camera_id,
-                        '#date-start': date_time_epoc,
-                        '#date-end': date_time_epoc,
-                        }
-                print('In sending_json........', item, direction_1_to_2)
-                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url))
-                x.start()
-                #send_json(data, 'PUT', srv_url)
-
-            elif initial[item] == 2 and last[item] == 1:
-                #        'id': str(item),
-                date_time_epoc = get_timestamp()
-                data = {
-                        'direction': direction_2_to_1,
-                        'camera-id': camera_id,
-                        '#date-start': date_time_epoc,
-                        '#date-end': date_time_epoc,
-                        }
-                print('Out sending_json........', item, direction_2_to_1)
-                x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
-                x.start()
-
-            initial.pop(item)
-            elements_to_delete.add(item)
-
-    for item in elements_to_delete:
-        last.pop(item)
-
-
 def people_counting(camera_id, total_objects):
     '''
     Sending only the total of detected objects
@@ -270,50 +220,6 @@ def people_counting(camera_id, total_objects):
     #print('People_counting first time..POST', data, people_counting_url)
     #x = threading.Thread(target=send_json, args=(data, 'POST', srv_url))
     #x.start()
-
-
-def people_counting_last_time_detected(ids, camera_id):
-    global first_time_set
-
-    srv_url = get_service_people_counting_url()
-
-    if first_time_set:
-        ids_set = set(ids)
-        for item in first_time_set.difference(ids_set):
-            if item not in last_time_set:
-                data = {
-                        'camera-id': camera_id,
-                        '#date': get_timestamp(),
-                        'object_id': item,
-                        }
-                print('People_counting last time.. PUT', data)
-                x = threading.Thread(target=send_json, args=(data, 'PUT', srv_url))
-                x.start()
-                #send_json(data, 'PUT', srv_url)
-                last_time_set.add(item)
-        first_time_set = first_time_set.intersection(ids_set)
-
-
-def counting_in_and_out_first_detection(box, object_id):
-    '''
-    A1 is the closest to the origin (0,0) and A2 is the area after the reference line
-    A1 is by default the outside
-    A2 is by default the inside
-    This can be changed by modifying the configuration variable "outside_area" to 2 (by default 1)
-    x = box[0]
-    y = box[1]
-    '''
-    # returns True if object is in area A2
-    if check_if_object_is_in_area2(box):
-        if object_id not in initial:
-            initial.update({object_id: 2})
-        else:
-            last.update({object_id: 2})
-    else:
-        if object_id not in initial:
-            initial.update({object_id: 1})
-        else:
-            last.update({object_id: 1})
 
 
 def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
