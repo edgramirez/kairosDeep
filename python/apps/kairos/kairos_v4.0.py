@@ -520,7 +520,7 @@ def set_aforo(key_id, aforo_data):
 def reading_server_config():
     from configs.Server_Emulatation_configs import config as scfg
 
-    if service.set_header(scfg['server']['token_file']):
+    if not service.set_header(scfg['server']['token_file']):
         log_error("Unable to set the 'Token' using parameter: {}".format(scfg['server']['token_file']))
 
     # setup the services for each camera
@@ -1013,7 +1013,9 @@ def main():
     # dstest2_pgie_config contiene modelo estandar, para  yoloV3, yoloV3_tiny y fasterRCNN
     #
 
-    pgie.set_property('config-file-path', CURRENT_DIR + "/configs/dstest2_pgie_config.txt")
+    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/dstest2_pgie_config.txt")
+    pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_nano.txt") 
+    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/deepstream_app_source1_video_masknet_gpu.txt")
     #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3.txt")
     #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/kairos_peoplenet_pgie_config.txt")
     # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3_tiny.txt")
@@ -1021,7 +1023,7 @@ def main():
     # Falta añadir la ruta completa del archivo de configuracion
     
     pgie_batch_size = pgie.get_property("batch-size")
-
+    print(pgie_batch_size)
     if pgie_batch_size != number_sources:
         print("WARNING: Overriding infer-config batch-size", pgie_batch_size,
               " with number of sources ", number_sources, " \n")
@@ -1143,9 +1145,9 @@ def main():
         tiler_src_pad.add_probe(Gst.PadProbeType.BUFFER, tiler_src_pad_buffer_probe, 0)
     
     print("Starting pipeline \n")
+    pipeline.set_state(Gst.State.PLAYING)
     
     # start play back and listed to events
-    pipeline.set_state(Gst.State.PLAYING)
     try:
         loop.run()
     except Exception as e:

@@ -54,6 +54,11 @@ def set_service_people_counting_url(srv_url):
     people_counting_url = srv_url + 'SERVICE_NOT_DEFINED_'
 
 
+def set_mask_detection_url(srv_url):
+    global mask_detection_url
+    mask_detection_url = srv_url + 'SERVICE_NOT_DEFINED_'
+
+
 def file_exists(file_name):
     try:
         with open(file_name) as f:
@@ -441,3 +446,6 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
                                 x.start()
             i += 1
 
+
+def mask_detection(ids_to_report):
+    print('en mask detection', ids_to_report)

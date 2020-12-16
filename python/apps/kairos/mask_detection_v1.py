@@ -101,6 +101,8 @@ global token_file
 global entradas_salidas
 global initial_last_disappeared
 global social_distance_ids
+global reported_ids
+
 
 initial_last_disappeared = {}
 source_list = []
@@ -111,6 +113,48 @@ camera_list = []
 social_distance_list = {}
 entradas_salidas = {}
 social_distance_ids = {}
+reported_ids = {}
+
+
+def set_reported_ids(key_id, set_of_values = None):
+    if key_id is not None:
+        global reported_ids
+        print('entro en set_reported_ids', key_id, 'reported_ids:', reported_ids, 'set_of_values', set_of_values)
+
+        if set_of_values and isinstance(set_of_values, set):
+            print('aaaqui.............................................')
+            if reported_ids[key_id] != set():
+                # aqui ya se enviaron y registraron ahora hay que agregarlos  por que ya los filtramos
+                new_set = reported_ids[key_id]
+                for x in set_of_values:
+                    new_set.add(x)
+
+                print('cambiando reported_ids antes', reported_ids[key_id], new_set)
+                reported_ids.update({key_id: new_set})
+                print('despues de modificar reported_ids', reported_ids[key_id])
+            else:
+                print('vaciaaaaa', reported_ids[key_id])
+                reported_ids.update({key_id: set_of_values})
+                print('vaciaaaaa despues', reported_ids[key_id])
+        else:
+            print('aaaca', reported_ids)
+            initial_value = set()
+            reported_ids.update({key_id: initial_value})
+            print('aaaca 2...', reported_ids)
+            print('aaaca 3...', reported_ids[key_id])
+    else:
+        print('impossssssssssible')
+        quit()
+
+    
+def get_reported_ids(key_id):
+    global reported_ids
+
+    print('---------------------')
+    print(reported_ids)
+    print(key_id)
+    print('.............', reported_ids[key_id])
+    return reported_ids[key_id]
 
 
 #def set_initial_last_disappeared(key_id):
@@ -530,30 +574,25 @@ def reading_server_config():
     set_number_of_resources(len(scfg['cameras']))
 
     for camera in scfg['cameras'].keys():
-        activate_service = True   # before False
+        activate_service = False# before False
         source = None
         for key in scfg['cameras'][camera].keys():
 
             if key == 'source':
                 source = scfg['cameras'][camera][key]
                 continue
-            '''
-            if key == 'aforo' and validate_aforo_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-                set_aforo(camera, scfg['cameras'][camera][key])
-                service.set_aforo_url(srv_url)
-                set_initial_last_disappeared(camera)
-                activate_service = True
-            elif key == 'social_distance' and validate_socialdist_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-                set_social_distance(camera, scfg['cameras'][camera][key])
-                service.set_social_distance_url(srv_url)
-                activate_service = True
-            elif key == 'people_counting' and validate_people_counting_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-                set_people_counting(camera, scfg['cameras'][camera][key])
-                service.set_service_people_counting_url(srv_url)
+            #elif key == 'people_counting' and validate_people_counting_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
+            #    set_people_counting(camera, scfg['cameras'][camera][key])
+            #    service.set_service_people_counting_url(srv_url)
+            #    activate_service = True
+            elif key == 'mask_detection' and scfg['cameras'][camera][key]['enabled']:
+                print('edgar 1 vez en set_reported_ids()')
+                set_reported_ids(camera)
+                service.set_mask_detection_url(srv_url)
                 activate_service = True
             else:
                 continue
-            '''
+
         if activate_service:
             set_camera(camera)
             set_sources(source)
@@ -583,6 +622,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
     camera_id = get_camera_id(current_pad_index)
+    print('edgar', current_pad_index, camera_id)
 
     #aforo_info = get_aforo(camera_id) 
     #is_aforo_enabled = aforo_info['enabled']
@@ -618,6 +658,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     py_nvosd_text_params.text_bg_clr.blue = 0.0
     py_nvosd_text_params.text_bg_clr.alpha = 1.0
 
+    reported_ids = get_reported_ids(camera_id)
 
     while l_frame is not None:
         try:
@@ -631,7 +672,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         num_rects = frame_meta.num_obj_meta
 
         #print(num_rects) ID numero de stream
-        ids = []
+        ids = set()
         boxes = []
         ids_and_boxes = {}
 
@@ -648,22 +689,43 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
            
 
             obj_counter[obj_meta.class_id] += 1
-            ids.append(obj_meta.object_id)
+            if obj_meta.class_id == 1:
+                ids.add(obj_meta.object_id)
+                print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK
+
             #x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2)
 
             #obj_counter[obj_meta.class_id] += 1
             #obj_meta.rect_params.border_color.set(1.0, 0.0, 1.0, 0.0)
             py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Mask={} NoMaks={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_MASK], obj_counter[PGIE_CLASS_ID_NOMASK])
-            if obj_meta.class_id == 1:
-                print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK     
+            #if obj_meta.class_id == 1:
+            #    print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK
 
             try: 
                 l_obj = l_obj.next
             except StopIteration:
                 break
-
+        
+        if reported_ids == set():
+            print('primera', reported_ids, 'ids', ids, type(ids))
+            set_reported_ids(camera_id, ids)
+            service.mask_detection(ids)
+        else:
+            print('segunda')
+            ids_to_report = { item for item in ids if item not in reported_ids }
+            print('en segunda.....ids', ids, 'reported_ids:', reported_ids, 'ids_to_report', ids_to_report)
+            
+            if ids_to_report != set():
+                set_reported_ids(camera_id, ids_to_report)
+                service.mask_detection(ids_to_report)
 
             #py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={}.format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
+
+        # Aqui Evaluo si tengo id_repetidos y mando solo los unicos
+	# y evaluo si tengo que limpiar el arreglo despues de n frames 
+        #  ----->  
+
+
 
         # Lo manda a directo streaming
         pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
@@ -809,9 +871,9 @@ def main():
     
     # el video con RTSP para Meraki viene optimizado a H264, por lo que no debe ser necesario crear un elemento h264parser stream
     # print("Creating H264Parser \n")
-    # h264parser = Gst.ElementFactory.make("h264parse", "h264-parser")
-    # if not h264parser:
-    #    sys.stderr.write(" Unable to create h264 parser \n")
+    h264parser = Gst.ElementFactory.make("h264parse", "h264-parser")
+    if not h264parser:
+        sys.stderr.write(" Unable to create h264 parser \n")
 
     print("Creating Decoder \n")
     decoder = Gst.ElementFactory.make("nvv4l2decoder", "nvv4l2-decoder")
@@ -955,7 +1017,7 @@ def main():
     #
     #  version 2.1 no requiere inferencias secundarias
     #
-
+    pipeline.add(h264parser)    # agrego h264
     pipeline.add(decoder)
     pipeline.add(pgie)
     pipeline.add(tracker)
@@ -974,8 +1036,7 @@ def main():
     # tiler -> nvvidconv -> nvosd -> video-renderer
     print("Linking elements in the Pipeline \n")
     
-    #source.link(h264parser)
-    #h264parser.link(decoder)
+    
 
     # lineas ya ejecutadas en el for anterior
     #sinkpad = streammux.get_request_pad("sink_0")
@@ -985,8 +1046,12 @@ def main():
     #if not srcpad:
     #    sys.stderr.write(" Unable to get source pad of decoder \n")
 
-    srcpad.link(sinkpad)    
-    source_bin.link(decoder)
+    
+
+    srcpad.link(sinkpad)
+    source_bin.link(h264parser)
+    h264parser.link(decoder)     
+    #source_bin.link(decoder)     Se agregaron las dos lineas anteriores
     decoder.link(streammux)
     streammux.link(pgie)
     pgie.link(tracker)
