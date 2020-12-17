@@ -1,6 +1,6 @@
 #                'source': "file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv",
 # home/aaeon/Downloads/ejercicio2/video2-1.mp4
-# CajaAndesCrop.mp4
+# CajaAndesCrop.mp4 
 # /opt/nvidia/deepstream/deepstream-5.0/samples/streams/sample_1080p_h264.mp4
 config = {
         'server': {
