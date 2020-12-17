@@ -1,3 +1,7 @@
+#                'source': "file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv",
+# home/aaeon/Downloads/ejercicio2/video2-1.mp4
+# CajaAndesCrop.mp4
+# /opt/nvidia/deepstream/deepstream-5.0/samples/streams/sample_1080p_h264.mp4
 config = {
         'server': {
             'url': 'https://mit.kairosconnect.app/',
@@ -6,7 +10,7 @@ config = {
         'cameras': {
             'DTevar-culhuacan-34:56:fe:a3:99:de':
                 {
-                'source': "file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv",
+                'source': "file:///home/aaeon/Downloads/ejercicio2/video3.mp4",
                 'aforo': {
                     'enabled': False,
                     'reference_line': {
@@ -31,10 +35,16 @@ config = {
                 'people_counting': {
                     'enabled': False,
                     },
+                'mask_detection': {
+                    'enabled': True,
+                    },
                 },
+            },
+        }
+'''        
             'CajaLosAndes-ac:17:c8:62:08:5b': 
                 {
-                'source': "file:///media/edgar/external_sdcard/respaldo_anterior_instalacion/githubs/kairosconnect-vision/videos/shopping_mall.mkv",
+                'source': "file:///home/aaeon/Downloads/ejercicio2/video2-1.mp4",
                 'aforo': {
                     'enabled': False,
                     'reference_line': {
@@ -57,10 +67,11 @@ config = {
                     'persistence_time': .01,
                     },
                 'people_counting': {
-                    'enabled': True,
+                    'enabled': False,
                     },
                 },
             },
         }
 #                'source': "rtsp://192.168.128.3:9000/live",
-#                'source': "rtsp://192.168.127.2:9000/live",
+#                'source': "rtsp://192.168.127.2:9000/live", 
+'''
