@@ -448,4 +448,4 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
 
 
 def mask_detection(ids_to_report):
-    print('en mask detection', ids_to_report)
+    print('Sending no mask detection ids : ....', ids_to_report)

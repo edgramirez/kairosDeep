@@ -101,8 +101,7 @@ global token_file
 global entradas_salidas
 global initial_last_disappeared
 global social_distance_ids
-global reported_ids
-
+global no_mask_ids_dict
 
 initial_last_disappeared = {}
 source_list = []
@@ -113,48 +112,25 @@ camera_list = []
 social_distance_list = {}
 entradas_salidas = {}
 social_distance_ids = {}
-reported_ids = {}
+no_mask_ids_dict = {}
 
 
-def set_reported_ids(key_id, set_of_values = None):
-    if key_id is not None:
-        global reported_ids
-        print('entro en set_reported_ids', key_id, 'reported_ids:', reported_ids, 'set_of_values', set_of_values)
+def set_no_mask_ids_dict(camera_id, dictionary = None):
+    global no_mask_ids_dict
 
-        if set_of_values and isinstance(set_of_values, set):
-            print('aaaqui.............................................')
-            if reported_ids[key_id] != set():
-                # aqui ya se enviaron y registraron ahora hay que agregarlos  por que ya los filtramos
-                new_set = reported_ids[key_id]
-                for x in set_of_values:
-                    new_set.add(x)
-
-                print('cambiando reported_ids antes', reported_ids[key_id], new_set)
-                reported_ids.update({key_id: new_set})
-                print('despues de modificar reported_ids', reported_ids[key_id])
-            else:
-                print('vaciaaaaa', reported_ids[key_id])
-                reported_ids.update({key_id: set_of_values})
-                print('vaciaaaaa despues', reported_ids[key_id])
-        else:
-            print('aaaca', reported_ids)
-            initial_value = set()
-            reported_ids.update({key_id: initial_value})
-            print('aaaca 2...', reported_ids)
-            print('aaaca 3...', reported_ids[key_id])
+    if camera_id in no_mask_ids_dict:
+        no_mask_ids_dict.update({camera_id: dictionary})
+        #print(no_mask_ids_dict)
     else:
-        print('impossssssssssible')
-        quit()
+        no_mask_ids_dict.update({camera_id: {}})
+        #print('initialized', no_mask_ids_dict)
 
     
-def get_reported_ids(key_id):
-    global reported_ids
+def get_no_mask_ids_dict(camera_id):
+    global no_mask_ids_dict
 
-    print('---------------------')
-    print(reported_ids)
-    print(key_id)
-    print('.............', reported_ids[key_id])
-    return reported_ids[key_id]
+    if camera_id in no_mask_ids_dict:
+        return no_mask_ids_dict[camera_id]
 
 
 #def set_initial_last_disappeared(key_id):
@@ -412,32 +388,6 @@ def set_number_of_resources(num):
 
 #    return True
 
-'''
-def validate_socialdist_values(data):
-
-    validate_keys('aforo', data, ['enabled', 'tolerated_distance', 'persistence_time'])
-
-    if not isinstance(data['enabled'], bool):
-        log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
-
-    if not isinstance(data['tolerated_distance'], int) and data['tolerated_distance'] > 0:
-        log_error("tolerated_distance element, most be a positive integer")
-
-    if not (isinstance(data['persistence_time'], int) or isinstance(data['persistence_time'], float)) and data['persistence_time'] > 0:
-        log_error("persistence_time element, most a be positive integer/floater")
-
-    return True
-
-
-def validate_people_counting_values(data):
-
-    validate_keys('people_counting', data, ['enabled'])
-
-    if not isinstance(data['enabled'], bool):
-        log_error("'people_counting' parameter, most be True or False, current value: {}".format(data['enabled']))
-
-    return True
-'''
 
 def log_error(msg):
     print("-- PARAMETER ERROR --\n"*5)
@@ -445,120 +395,6 @@ def log_error(msg):
     print("-- PARAMETER ERROR --\n"*5)
     quit()
 
-'''
-def set_aforo(key_id, aforo_data):
-    global aforo_list
-
-    if 'reference_line' in aforo_data and 'area_of_interest' in aforo_data and aforo_data['area_of_interest']['type'] in ['horizontal', 'parallel']:
-        if aforo_data['area_of_interest']['type'] == 'horizontal':
-            # generating left_top_xy, width and height
-            x1 = aforo_data['reference_line']['coordinates'][0][0]
-            y1 = aforo_data['reference_line']['coordinates'][0][1]
-            x2 = aforo_data['reference_line']['coordinates'][1][0]
-            y2 = aforo_data['reference_line']['coordinates'][1][1]
-
-            left = aforo_data['area_of_interest']['left']
-            right = aforo_data['area_of_interest']['right']
-            up = aforo_data['area_of_interest']['up']
-            down = aforo_data['area_of_interest']['down']
-
-            if x1 < x2:
-                topx = x1 - left
-
-            else:
-                topx = x2 - left
-
-            # adjusting if value is negative
-            if topx < 0:
-                topx = 0
-
-            if y1 < y2:
-                topy = y1 - up
-
-            else:
-                topy = y2 - up
-
-            # adjusting if value is negative
-            if topy < 0:
-                topy = 0
-
-            width = left + right + abs(x1 - x2)
-            height = up + down + abs(y1 - y2)
-
-            if (x2 - x1) == 0:
-                m = None
-                b = None
-            elif (y2 - y1) == 0:
-                m = 0
-                b = 0
-            else:
-                m = ((y2 - y1) * 1.0) / (x2 -x1)
-                b = y1 - (m * x1)
-
-            aforo_list.update(
-                {
-                    key_id: {
-                        'enabled': aforo_data['enabled'],
-                        'outside_area': aforo_data['reference_line']['outside_area'],
-                        'coordinates': aforo_data['reference_line']['coordinates'],
-                        'width': aforo_data['reference_line']['width'],
-                        'color': aforo_data['reference_line']['color'],
-                        'line_m_b': [m, b],
-                        'area_of_interest': {'type': aforo_data['area_of_interest']['type'], 'values': [topx, topy, width, height]},
-                        }
-                    }
-                )
-        else:
-            log_error("Parallel area logic not yet defined")
-    elif 'reference_line' not in aforo_data and 'area_of_interest' in aforo_data and aforo_data['area_of_interest']['type'] in ['fixed']:
-        topx = aforo_data['area_of_interest']['topx']
-        topy = aforo_data['area_of_interest']['topy']
-        width = aforo_data['area_of_interest']['width']
-        height = aforo_data['area_of_interest']['height']
-
-        aforo_list.update(
-            {
-                key_id: {
-                    'enabled': aforo_data['enabled'],
-                    'coordinates': None,
-                    'area_of_interest': {'type': aforo_data['area_of_interest']['type'], 'values': [topx, topy, width, height]},
-                    }
-                }
-            )
-
-    elif 'reference_line' in aforo_data and 'area_of_interest' not in aforo_data:
-        x1 = aforo_data['reference_line']['coordinates'][0][0]
-        y1 = aforo_data['reference_line']['coordinates'][0][1]
-        x2 = aforo_data['reference_line']['coordinates'][1][0]
-        y2 = aforo_data['reference_line']['coordinates'][1][1]
-
-        if (x2 - x1) == 0:
-            m = None
-            b = None
-        elif (y2 - y1) == 0:
-            m = 0
-            b = 0
-        else:
-            m = ((y2 - y1) * 1.0) / (x2 -x1)
-            b = y1 - (m * x1)
-
-        aforo_list.update(
-                {
-                    key_id: {
-                        'enabled': aforo_data['enabled'],
-                        'outside_area': aforo_data['reference_line']['outside_area'],
-                        'coordinates': aforo_data['reference_line']['coordinates'],
-                        'width': aforo_data['reference_line']['width'],
-                        'color': aforo_data['reference_line']['color'],
-                        'line_m_b': [m, b],
-                        'area_of_interest': {'type': aforo_data['area_of_interest']['type'], 'values': None},
-                        }
-                    }
-                )
-    else:
-        log_error("Missing configuration parameters for 'aforo' service")
-
-'''
 
 def reading_server_config():
     from configs.Server_Emulatation_configs import config as scfg
@@ -581,13 +417,8 @@ def reading_server_config():
             if key == 'source':
                 source = scfg['cameras'][camera][key]
                 continue
-            #elif key == 'people_counting' and validate_people_counting_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-            #    set_people_counting(camera, scfg['cameras'][camera][key])
-            #    service.set_service_people_counting_url(srv_url)
-            #    activate_service = True
             elif key == 'mask_detection' and scfg['cameras'][camera][key]['enabled']:
-                print('edgar 1 vez en set_reported_ids()')
-                set_reported_ids(camera)
+                set_no_mask_ids_dict(camera)
                 service.set_mask_detection_url(srv_url)
                 activate_service = True
             else:
@@ -622,7 +453,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
     camera_id = get_camera_id(current_pad_index)
-    print('edgar', current_pad_index, camera_id)
 
     #aforo_info = get_aforo(camera_id) 
     #is_aforo_enabled = aforo_info['enabled']
@@ -658,8 +488,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     py_nvosd_text_params.text_bg_clr.blue = 0.0
     py_nvosd_text_params.text_bg_clr.alpha = 1.0
 
-    reported_ids = get_reported_ids(camera_id)
+    no_mask_ids = get_no_mask_ids_dict(camera_id)
 
+    frame_number = 1 # to avoid not definition issue
     while l_frame is not None:
         try:
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
@@ -673,8 +504,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         #print(num_rects) ID numero de stream
         ids = set()
-        boxes = []
-        ids_and_boxes = {}
 
         # Ciclo interno donde se evaluan los objetos dentro del frame
         while l_obj is not None: 
@@ -686,12 +515,26 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
             #x = obj_meta.rect_params.width
             #y = obj_meta.rect_params.height
-           
 
             obj_counter[obj_meta.class_id] += 1
             if obj_meta.class_id == 1:
+
                 ids.add(obj_meta.object_id)
-                print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK
+
+                if obj_meta.object_id not in no_mask_ids:
+                    counter = 1
+                else:
+                    counter = no_mask_ids[obj_meta.object_id]
+                    counter += 1
+
+                if counter == 4: # corrently hardcoded to 4
+                    service.mask_detection(obj_meta.object_id)
+
+                no_mask_ids.update({obj_meta.object_id: counter})
+                set_no_mask_ids_dict(camera_id, no_mask_ids)
+
+                #ids.add(obj_meta.object_id)
+                # print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK
 
             #x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2)
 
@@ -706,28 +549,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             except StopIteration:
                 break
         
-        if reported_ids == set():
-            print('primera', reported_ids, 'ids', ids, type(ids))
-            set_reported_ids(camera_id, ids)
-            service.mask_detection(ids)
-        else:
-            print('segunda')
-            ids_to_report = { item for item in ids if item not in reported_ids }
-            print('en segunda.....ids', ids, 'reported_ids:', reported_ids, 'ids_to_report', ids_to_report)
-            
-            if ids_to_report != set():
-                set_reported_ids(camera_id, ids_to_report)
-                service.mask_detection(ids_to_report)
-
             #py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={}.format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
 
         # Aqui Evaluo si tengo id_repetidos y mando solo los unicos
 	# y evaluo si tengo que limpiar el arreglo despues de n frames 
         #  ----->  
 
-
-
-        # Lo manda a directo streaming
         pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
 
         fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()       
@@ -735,6 +562,19 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             l_frame = l_frame.next
         except StopIteration:
             break
+
+    if frame_number % 43 == 0:
+        new_dict = {}
+        no_mask_ids = get_no_mask_ids_dict(camera_id)
+
+        for item in ids:
+            if item in no_mask_ids:
+                value = no_mask_ids[item]
+                new_dict.update({item: value})
+
+        set_no_mask_ids_dict(camera_id, new_dict)
+
+        # Lo manda a directo streaming
 
     return Gst.PadProbeReturn.OK	
 
