@@ -459,7 +459,7 @@ def mask_detection(mask_id, no_mask_ids):
             data_id = str(time_in_epoc) + '_' + mask_id
             data = {
                 'id': data_id,
-                'mask-id': mask_id,
+                'mask': mask_id,
                 'camera-id': camera_id,
                 '#date-start': time_in_epoc,
                 '#date-end': time_in_epoc
