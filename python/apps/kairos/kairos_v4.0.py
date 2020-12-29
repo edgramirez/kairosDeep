@@ -301,6 +301,7 @@ def validate_aforo_values(data):
             log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
 
     if 'reference_line_coordinates' in data.keys():
+        reference_line_coordinates = data['reference_line_coordinates']
         reference_line_coordinates = reference_line_coordinates.replace('(', '')
         reference_line_coordinates = reference_line_coordinates.replace(')', '')
         reference_line_coordinates = reference_line_coordinates.replace(' ', '')
