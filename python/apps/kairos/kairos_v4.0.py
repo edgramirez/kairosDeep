@@ -163,7 +163,7 @@ def set_people_counting(key_id, people_couting_data):
     if not isinstance(people_couting_data, dict):
         log_error("'people_counting_data' parameter, most be a dictionary")
 
-    if people_couting_data['enabled'] not in [True, False]:
+    if people_couting_data['enabled'] not in ["True", "False"]:
         log_error("'people_counting_data' parameter, most be True or False")
 
     people_distance_list[key_id] = people_couting_data
@@ -176,7 +176,7 @@ def set_social_distance(key_id, social_distance_data):
     if not isinstance(social_distance_data, dict):
         log_error("'social_distance_data' parameter, most be a dictionary")
 
-    if social_distance_data['enabled'] not in [True, False]:
+    if social_distance_data['enabled'] not in ["True", "False"]:
         log_error("'social_distance_data' parameter, most be True or False")
 
     if not isinstance(social_distance_data['tolerated_distance'], int) and social_distance_data['tolerated_distance'] > 3:
