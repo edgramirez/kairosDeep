@@ -338,8 +338,9 @@ def validate_aforo_values(data):
             reference_line_color = reference_line_color.split(',')
             try:
                 reference_line_color = [int(reference_line_color[0]), int(reference_line_color[1]), int(reference_line_color[2]), int(reference_line_color[3])]
+                data.update({'reference_line_color': reference_line_color})
             except Exception as e:
-                log_error("Exception: Unable to create reference_line_coordinates".format(str(e)))
+                log_error("Exception: Unable to create reference_line_color".format(str(e)))
 
 
         if not isinstance(data['reference_line_color'], list):
@@ -457,10 +458,10 @@ def set_aforo(key_id, aforo_data):
     if 'reference_line_coordinates' in aforo_data and 'area_of_interest_UpDownLeftRight' in aforo_data and aforo_data['area_of_interest_type'] in ['horizontal', 'parallel']:
         if aforo_data['area_of_interest_type'] == 'horizontal':
             # generating left_top_xy, width and height
-            x1 = aforo_data['reference_line_coordinates'][0]
-            y1 = aforo_data['reference_line_coordinates'][1]
-            x2 = aforo_data['reference_line_coordinates'][2]
-            y2 = aforo_data['reference_line_coordinates'][3]
+            x1 = aforo_data['reference_line_coordinates'][0][0]
+            y1 = aforo_data['reference_line_coordinates'][0][1]
+            x2 = aforo_data['reference_line_coordinates'][1][0]
+            y2 = aforo_data['reference_line_coordinates'][1][1]
 
             left = aforo_data['area_of_interest_UpDownLeftRight']['left']
             right = aforo_data['area_of_interest_UpDownLeftRight']['right']
@@ -532,10 +533,10 @@ def set_aforo(key_id, aforo_data):
             )
 
     elif 'reference_line_coordinates' in aforo_data and 'area_of_interest_UpDownLeftRight' not in aforo_data:
-        x1 = aforo_data['reference_line_coordinates'][0]
-        y1 = aforo_data['reference_line_coordinates'][1]
-        x2 = aforo_data['reference_line_coordinates'][2]
-        y2 = aforo_data['reference_line_coordinates'][3]
+        x1 = aforo_data['reference_line_coordinates'][0][0]
+        y1 = aforo_data['reference_line_coordinates'][0][1]
+        x2 = aforo_data['reference_line_coordinates'][1][0]
+        y2 = aforo_data['reference_line_coordinates'][1][1]
 
         if (x2 - x1) == 0:
             m = None
