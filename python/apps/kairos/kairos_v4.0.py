@@ -400,6 +400,31 @@ def log_error(msg):
     quit()
 
 
+
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
+    return ':'.join('%02x' % b for b in info[18:24])
+
+
+def get_machine_macaddress(index = 0):
+    list_of_interfaces = []
+    list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
+    return getHwAddr(list_of_interfaces[index])
+
+
+def read_server_info():
+    global srv_url
+
+    machine_id = get_machine_macaddress()
+    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    data = {"id": machine_id}
+    url = srv_url + 'tx/device.getConfigByProcessDevice'
+    response = service.send_json(data, 'POST', url)
+
+    return json.loads(response.text)
+
+
 def set_aforo(key_id, aforo_data):
     global aforo_list
 
