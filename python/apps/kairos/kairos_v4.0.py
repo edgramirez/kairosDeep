@@ -52,7 +52,11 @@ import time
 import math
 import datetime
 
-
+import fcntl
+import socket
+import struct
+import json
+import requests
 
 #
 #  version 2.1 solo detectara personas
@@ -231,7 +235,7 @@ def get_aforo(key_id, key = None, second_key = None):
 def set_sources(value):
     global source_list
 
-    if value:
+    if value not in source_list and value:
         source_list.append(value)
 
 
@@ -243,7 +247,7 @@ def get_sources():
 def set_camera(value):
     global camera_list
 
-    if value:
+    if value not in camera_list and value:
         camera_list.append(value)
 
 
@@ -266,14 +270,6 @@ def set_token(token_file_name):
         token_file = token_file_name
         return True
     log_error("'token_file_name={}' parameter, most be a valid string".format(token_file_name))
-
-
-def set_number_of_resources(num):
-    if isinstance(num, int):
-        global number_of_resources
-        number_of_resources = num
-        return True
-    log_error("'num={}' parameter, most be integer".format(num))
 
 
 def set_entrada_salida(key_id, entrada, salida):
@@ -517,40 +513,52 @@ def set_aforo(key_id, aforo_data):
         log_error("Missing configuration parameters for 'aforo' service")
 
 
-def reading_server_config():
-    from configs.Server_Emulatation_configs import config as scfg
-
-    if not service.set_header(scfg['server']['token_file']):
-        log_error("Unable to set the 'Token' using parameter: {}".format(scfg['server']['token_file']))
-
-    # setup the services for each camera
-    set_server_url(scfg['server']['url'])
+def read_server_info():
     global srv_url
 
-    # setup the services for each camera
-    set_number_of_resources(len(scfg['cameras']))
+    machine_id = get_machine_macaddress()
+    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    data = {"id": machine_id}
+    url = srv_url + 'tx/device.getConfigByProcessDevice'
+    response = service.send_json(data, 'POST', url)
 
-    for camera in scfg['cameras'].keys():
+    return json.loads(response.text)
+
+
+def reading_server_config():
+    if not service.set_header('.token'):
+        log_error("Unable to set the 'Token' from file .token: ")
+
+    set_server_url('https://mit.kairosconnect.app/')
+
+
+    # get server infomation based on the nano mac_address
+    scfg = read_server_info()
+    global srv_url
+
+    for camera in scfg.keys():
         activate_service = False
         source = None
-        for key in scfg['cameras'][camera].keys():
 
-            if key == 'source':
-                source = scfg['cameras'][camera][key]
-                continue
-
-            if key == 'aforo' and validate_aforo_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-                set_aforo(camera, scfg['cameras'][camera][key])
+        for key in scfg[camera].keys():
+            if key == 'aforo' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
+                global srv_url
+                set_aforo(camera, scfg[camera][key])
                 service.set_aforo_url(srv_url)
                 set_initial_last_disappeared(camera)
+                source = scfg[camera][key]['source']
                 activate_service = True
-            elif key == 'social_distance' and validate_socialdist_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-                set_social_distance(camera, scfg['cameras'][camera][key])
+            elif key == 'social_distance' and validate_socialdist_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
+                global srv_url
+                set_social_distance(camera, scfg[camera][key])
                 service.set_social_distance_url(srv_url)
+                source = scfg[camera][key]['source']
                 activate_service = True
-            elif key == 'people_counting' and validate_people_counting_values(scfg['cameras'][camera][key]) and scfg['cameras'][camera][key]['enabled']:
-                set_people_counting(camera, scfg['cameras'][camera][key])
+            elif key == 'people_counting' and validate_people_counting_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
+                global srv_url
+                set_people_counting(camera, scfg[camera][key])
                 service.set_service_people_counting_url(srv_url)
+                source = scfg[camera][key]['source']
                 activate_service = True
             else:
                 continue
