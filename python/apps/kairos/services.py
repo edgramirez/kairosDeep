@@ -189,7 +189,7 @@ def send_json(payload, action, url = None, **options):
                 r = requests.put(url, data=data, headers=header)
             else:
                 r = requests.delete(url, data=data, headers=header)
-            return True
+            return r
         except requests.exceptions.ConnectionError as e:
             time.sleep(1)
             if retry == retries - 1:

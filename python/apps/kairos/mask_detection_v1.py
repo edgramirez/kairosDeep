@@ -52,6 +52,11 @@ import time
 import math
 import datetime
 
+import fcntl
+import socket
+import struct
+import json
+import requests
 
 
 #
@@ -249,7 +254,7 @@ def get_no_mask_ids_dict(camera_id):
 def set_sources(value):
     global source_list
 
-    if value:
+    if value not in source_list and value:
         source_list.append(value)
 
 
@@ -261,7 +266,7 @@ def get_sources():
 def set_camera(value):
     global camera_list
 
-    if value:
+    if value not in camera_list and value:
         camera_list.append(value)
 
 
@@ -396,33 +401,53 @@ def log_error(msg):
     quit()
 
 
-def reading_server_config():
-    from configs.Server_Emulatation_configs import config as scfg
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
+    return ':'.join('%02x' % b for b in info[18:24])
 
-    if not service.set_header(scfg['server']['token_file']):
-        log_error("Unable to set the 'Token' using parameter: {}".format(scfg['server']['token_file']))
 
-    # setup the services for each camera
-    set_server_url(scfg['server']['url'])
+def get_machine_macaddress(index = 0):
+    list_of_interfaces = []
+    list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
+    return getHwAddr(list_of_interfaces[index])
+
+
+def read_server_info():
     global srv_url
 
-    # setup the services for each camera
-    set_number_of_resources(len(scfg['cameras']))
+    machine_id = get_machine_macaddress()
+    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    data = {"id": machine_id}
+    url = srv_url + 'tx/device.getConfigByProcessDevice'
+    response = service.send_json(data, 'POST', url)
 
-    for camera in scfg['cameras'].keys():
-        activate_service = False# before False
+    return json.loads(response.text)
+
+
+def reading_server_config():
+    if not service.set_header('.token'):
+        log_error("Unable to set the 'Token' from file .token: ")
+
+    set_server_url('https://mit.kairosconnect.app/')
+
+    # get server infomation based on the nano mac_address
+    scfg = read_server_info()
+
+    for camera in scfg.keys():
+        if camera == 'OK':
+            continue
+
+        activate_service = False
         source = None
-        for key in scfg['cameras'][camera].keys():
 
-            if key == 'source':
-                source = scfg['cameras'][camera][key]
-                continue
-            elif key == 'mask_detection' and scfg['cameras'][camera][key]['enabled']:
+        for key in scfg[camera].keys():
+            if key == 'video-socialDistancing' and scfg[camera][key]['enabled'] == "True":
+                global srv_url
+                source = scfg[camera][key]['source']
                 set_no_mask_ids_dict(camera)
                 service.set_mask_detection_url(srv_url)
                 activate_service = True
-            else:
-                continue
 
         if activate_service:
             set_camera(camera)
