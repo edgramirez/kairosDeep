@@ -379,7 +379,7 @@ def validate_socialdist_values(data):
     else:
         data.update({'tolerated_distance': float(data['tolerated_distance'])})
 
-    if not float(isinstance(data['persistence_time']), float)  and float(data['persistence_time']) > 0:
+    if not isinstance(float(data['persistence_time']), float)  and float(data['persistence_time']) > 0:
         log_error("persistence_time element, most a be positive integer/floater")
     else:
         data.update({'persistence_time': float(data['persistence_time'])})
