@@ -300,57 +300,77 @@ def validate_aforo_values(data):
         if not isinstance(data['enabled'], str):
             log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
 
-    if 'reference_line' in data.keys():
-        if not isinstance(data['reference_line'], dict):
-            log_error("reference_line, most be a dictionary. Undefining variable")
+    if 'reference_line_coordinates' in data.keys():
+        reference_line_coordinates = reference_line_coordinates.replace('(', '')
+        reference_line_coordinates = reference_line_coordinates.replace(')', '')
+        reference_line_coordinates = reference_line_coordinates.replace(' ', '')
+        reference_line_coordinates = reference_line_coordinates.split(',')
+        try:
+            reference_line_coordinates = [(int(reference_line_coordinates[0]), int(reference_line_coordinates[1])), (int(reference_line_coordinates[2]), int(reference_line_coordinates[3]))]
+        except Exception as e:
+            log_error("Exception: Unable to create reference_line_coordinates".format(str(e)))
 
-        if 'coordinates' not in data['reference_line'].keys():
-            log_error("If reference must be defined through 'coordinates'")
+        if not isinstance(data['reference_line_coordinates'], list):
+            log_error("reference_line_coordinate, most be a list. Undefining variable")
 
-        if len(data['reference_line']['coordinates']) != 2:
+        if len(data['reference_line_coordinates']) != 2:
             log_error("coordinates, most be a pair of values.")
 
-        for coordinate in data['reference_line']['coordinates']:
+        for coordinate in data['reference_line_coordinates']:
             if not isinstance(coordinate[0], int) or not isinstance(coordinate[1], int):
                 log_error("coordinates elements, most be integers")
 
-        if 'width' not in data['reference_line'].keys():
-            log_error("Line width must be defined through 'width'")
+        if 'reference_line_width' not in data.keys():
+            data.update({'reference_line_width': 2})
+        else:
+            new_value = float(data['reference_line_width'])
+            new_value = int(new_value)
+            data.update({'reference_line_width': new_value})
 
-        if not isinstance(data['reference_line']['width'], int):
-            log_error("coordinates elements, most be integers")
+        if 'reference_line_color' not in data.keys():
+            data.update({'reference_line_color': [1, 1, 1, 1]})
+        else:
+            reference_line_color = reference_line_color.replace('(', '')
+            reference_line_color = reference_line_color.replace(')', '')
+            reference_line_color = reference_line_color.replace(' ', '')
+            reference_line_color = reference_line_color.split(',')
+            try:
+                reference_line_color = [int(reference_line_color[0]), int(reference_line_color[1]), int(reference_line_color[2]), int(reference_line_color[3])]
+            except Exception as e:
+                log_error("Exception: Unable to create reference_line_coordinates".format(str(e)))
 
-        if 'color' not in data['reference_line'].keys():
-            log_error("Line width must be defined through 'color'")
 
-        if not isinstance(data['reference_line']['color'], list):
+        if not isinstance(data['reference_line_color'], list):
             log_error("coordinates color elements, most be a list of integers")
 
-        for color in data['reference_line']['color']:
+        for color in data['reference_line_color']:
             if not isinstance(color, int) or color < 0 or color > 255:
                 log_error("color values should be integers and within 0-255")
 
-        if 'outside_area' not in data['reference_line'].keys():
+        if 'reference_line_outside_area' not in data.keys():
             log_error("If reference line is define 'outside_area' must also be defined")
         else:
-            if not isinstance(data['reference_line']['outside_area'], int) or data['reference_line']['outside_area'] not in [1, 2]:
+            reference_line_outside_area = float(data['reference_line_outside_area'])
+            reference_line_outside_area = int(reference_line_outside_area)
+            if reference_line_outside_area not in [1, 2]:
                 log_error("outside_area, most be an integer 1 or 2")
+            data.update({'reference_line_outside_area': reference_line_outside_area})
 
-    if 'area_of_interest' in data.keys():
-        if 'type' not in data['area_of_interest'].keys():
+    if 'area_of_interest_UpDownLeftRight' in data.keys():
+        if 'area_of_interest_type' not in data.keys():
             log_error("Missing 'type' in 'area_of_interest' object")
 
-        if data['area_of_interest']['type'] not in ['horizontal', 'parallel', 'fixed']:
+        if data['area_of_interest_type'] not in ['horizontal', 'parallel', 'fixed']:
             log_error("'type' object value must be 'horizontal', 'parallel' or 'fixed'")
 
-        if data['area_of_interest']['type'] == 'horizontal':
-            horizontal_keys = ['up', 'down', 'left', 'right']
-            for param in horizontal_keys:
-                if param not in data['area_of_interest'].keys():
-                    log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
-
-                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
-                    log_error("{} value should be integer and positive".format(params))
+        #if data['area_of_interest_type'] == 'horizontal':
+        #    horizontal_keys = ['up', 'down', 'left', 'right']
+        #    for param in horizontal_keys:
+        #        if param not in data['area_of_interest'].keys():
+        #            log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
+        #
+        #        if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
+        #            log_error("{} value should be integer and positive".format(params))
         elif data['area_of_interest']['type'] == 'parallel':
             print('type parallel not defined')
         elif data['area_of_interest']['type'] == 'fixed':
@@ -432,18 +452,18 @@ def read_server_info():
 def set_aforo(key_id, aforo_data):
     global aforo_list
 
-    if 'reference_line' in aforo_data and 'area_of_interest' in aforo_data and aforo_data['area_of_interest']['type'] in ['horizontal', 'parallel']:
-        if aforo_data['area_of_interest']['type'] == 'horizontal':
+    if 'reference_line_coordinates' in aforo_data and 'area_of_interest_UpDownLeftRight' in aforo_data and aforo_data['area_of_interest_type'] in ['horizontal', 'parallel']:
+        if aforo_data['area_of_interest_type'] == 'horizontal':
             # generating left_top_xy, width and height
-            x1 = aforo_data['reference_line']['coordinates'][0][0]
-            y1 = aforo_data['reference_line']['coordinates'][0][1]
-            x2 = aforo_data['reference_line']['coordinates'][1][0]
-            y2 = aforo_data['reference_line']['coordinates'][1][1]
+            x1 = aforo_data['reference_line_coordinates'][0]
+            y1 = aforo_data['reference_line_coordinates'][1]
+            x2 = aforo_data['reference_line_coordinates'][2]
+            y2 = aforo_data['reference_line_coordinates'][3]
 
-            left = aforo_data['area_of_interest']['left']
-            right = aforo_data['area_of_interest']['right']
-            up = aforo_data['area_of_interest']['up']
-            down = aforo_data['area_of_interest']['down']
+            left = aforo_data['area_of_interest_UpDownLeftRight']['left']
+            right = aforo_data['area_of_interest_UpDownLeftRight']['right']
+            up = aforo_data['area_of_interest_UpDownLeftRight']['up']
+            down = aforo_data['area_of_interest_UpDownLeftRight']['down']
 
             if x1 < x2:
                 topx = x1 - left
@@ -482,38 +502,38 @@ def set_aforo(key_id, aforo_data):
                 {
                     key_id: {
                         'enabled': aforo_data['enabled'],
-                        'outside_area': aforo_data['reference_line']['outside_area'],
-                        'coordinates': aforo_data['reference_line']['coordinates'],
-                        'width': aforo_data['reference_line']['width'],
-                        'color': aforo_data['reference_line']['color'],
+                        'outside_area': aforo_data['reference_line_outside_area'],
+                        'coordinates': aforo_data['reference_line_coordinates'],
+                        'width': aforo_data['reference_line_width'],
+                        'color': aforo_data['reference_line_color'],
                         'line_m_b': [m, b],
-                        'area_of_interest': {'type': aforo_data['area_of_interest']['type'], 'values': [topx, topy, width, height]},
+                        'area_of_interest': {'type': aforo_data['area_of_interest_type'], 'values': [topx, topy, width, height]},
                         }
                     }
                 )
         else:
             log_error("Parallel area logic not yet defined")
-    elif 'reference_line' not in aforo_data and 'area_of_interest' in aforo_data and aforo_data['area_of_interest']['type'] in ['fixed']:
-        topx = aforo_data['area_of_interest']['topx']
-        topy = aforo_data['area_of_interest']['topy']
-        width = aforo_data['area_of_interest']['width']
-        height = aforo_data['area_of_interest']['height']
+    elif 'reference_line_coordinates' not in aforo_data and 'area_of_interest_UpDownLeftRight' in aforo_data and aforo_data['area_of_interest_type'] in ['fixed']:
+        topx = aforo_data['area_of_interest_UpDownLeftRight']['topx']
+        topy = aforo_data['area_of_interest_UpDownLeftRight']['topy']
+        width = aforo_data['area_of_interest_UpDownLeftRight']['width']
+        height = aforo_data['area_of_interest_UpDownLeftRight']['height']
 
         aforo_list.update(
             {
                 key_id: {
                     'enabled': aforo_data['enabled'],
                     'coordinates': None,
-                    'area_of_interest': {'type': aforo_data['area_of_interest']['type'], 'values': [topx, topy, width, height]},
+                    'area_of_interest': {'type': aforo_data['area_of_interest_type'], 'values': [topx, topy, width, height]},
                     }
                 }
             )
 
-    elif 'reference_line' in aforo_data and 'area_of_interest' not in aforo_data:
-        x1 = aforo_data['reference_line']['coordinates'][0][0]
-        y1 = aforo_data['reference_line']['coordinates'][0][1]
-        x2 = aforo_data['reference_line']['coordinates'][1][0]
-        y2 = aforo_data['reference_line']['coordinates'][1][1]
+    elif 'reference_line_coordinates' in aforo_data and 'area_of_interest_UpDownLeftRight' not in aforo_data:
+        x1 = aforo_data['reference_line_coordinates'][0]
+        y1 = aforo_data['reference_line_coordinates'][1]
+        x2 = aforo_data['reference_line_coordinates'][2]
+        y2 = aforo_data['reference_line_coordinates'][3]
 
         if (x2 - x1) == 0:
             m = None
@@ -529,12 +549,12 @@ def set_aforo(key_id, aforo_data):
                 {
                     key_id: {
                         'enabled': aforo_data['enabled'],
-                        'outside_area': aforo_data['reference_line']['outside_area'],
-                        'coordinates': aforo_data['reference_line']['coordinates'],
-                        'width': aforo_data['reference_line']['width'],
-                        'color': aforo_data['reference_line']['color'],
+                        'outside_area': aforo_data['reference_line_outside_area'],
+                        'coordinates': aforo_data['reference_line_coordinates'],
+                        'width': aforo_data['reference_line_width'],
+                        'color': aforo_data['reference_line_color'],
                         'line_m_b': [m, b],
-                        'area_of_interest': {'type': aforo_data['area_of_interest']['type'], 'values': None},
+                        'area_of_interest': {'type': aforo_data['area_of_interest_type'], 'values': None},
                         }
                     }
                 )
