@@ -297,7 +297,7 @@ def validate_aforo_values(data):
     if 'enabled' not in data.keys():
         log_error('Key element enabled does not exists in the data provided:\n\n {}'.format(data))
     else:
-        if not isinstance(data['enabled'], bool):
+        if not isinstance(data['enabled'], str):
             log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
 
     if 'reference_line' in data.keys():
@@ -371,7 +371,7 @@ def validate_socialdist_values(data):
 
     validate_keys('aforo', data, ['enabled', 'tolerated_distance', 'persistence_time'])
 
-    if not isinstance(data['enabled'], bool):
+    if not isinstance(data['enabled'], str):
         log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
 
     if not isinstance(data['tolerated_distance'], int) and data['tolerated_distance'] > 0:
@@ -387,7 +387,7 @@ def validate_people_counting_values(data):
 
     validate_keys('people_counting', data, ['enabled'])
 
-    if not isinstance(data['enabled'], bool):
+    if not isinstance(data['enabled'], str):
         log_error("'people_counting' parameter, most be True or False, current value: {}".format(data['enabled']))
 
     return True
