@@ -565,6 +565,9 @@ def reading_server_config():
     global srv_url
 
     for camera in scfg.keys():
+        if camera == 'OK':
+            continue
+
         activate_service = False
         source = None
 
