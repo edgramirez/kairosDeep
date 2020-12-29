@@ -565,13 +565,13 @@ def reading_server_config():
         source = None
 
         for key in scfg[camera].keys():
-            if key == 'aforo' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
+            if key == 'video-people' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
                 set_aforo(camera, scfg[camera][key])
                 service.set_aforo_url(srv_url)
                 set_initial_last_disappeared(camera)
                 source = scfg[camera][key]['source']
                 activate_service = True
-            elif key == 'social_distance' and validate_socialdist_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
+            elif key == 'video-socialDistancing' and validate_socialdist_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
                 set_social_distance(camera, scfg[camera][key])
                 service.set_social_distance_url(srv_url)
                 source = scfg[camera][key]['source']
