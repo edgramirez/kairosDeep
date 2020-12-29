@@ -373,12 +373,16 @@ def validate_socialdist_values(data):
 
     if not isinstance(data['enabled'], str):
         log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
-
-    if not isinstance(data['tolerated_distance'], int) and data['tolerated_distance'] > 0:
+    
+    if not isinstance(int(data['tolerated_distance']), int) and int(data['tolerated_distance']) > 0:
         log_error("tolerated_distance element, most be a positive integer")
+    else:
+        data.update({'tolerated_distance': int(data['tolerated_distance'])})
 
-    if not (isinstance(data['persistence_time'], int) or isinstance(data['persistence_time'], float)) and data['persistence_time'] > 0:
+    if not (int(isinstance(data['persistence_time']), int) or isinstance(float(data['persistence_time']), float)) and float(data['persistence_time']) > 0:
         log_error("persistence_time element, most a be positive integer/floater")
+    else:
+        data.update({'persistence_time': int(data['persistence_time'])})
 
     return True
 
