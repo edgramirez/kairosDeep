@@ -534,7 +534,6 @@ def reading_server_config():
 
     # get server infomation based on the nano mac_address
     scfg = read_server_info()
-    global srv_url
 
     for camera in scfg.keys():
         activate_service = False
