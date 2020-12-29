@@ -531,9 +531,9 @@ def reading_server_config():
 
     set_server_url('https://mit.kairosconnect.app/')
 
-
     # get server infomation based on the nano mac_address
     scfg = read_server_info()
+    global srv_url
 
     for camera in scfg.keys():
         activate_service = False
@@ -541,20 +541,17 @@ def reading_server_config():
 
         for key in scfg[camera].keys():
             if key == 'aforo' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                global srv_url
                 set_aforo(camera, scfg[camera][key])
                 service.set_aforo_url(srv_url)
                 set_initial_last_disappeared(camera)
                 source = scfg[camera][key]['source']
                 activate_service = True
             elif key == 'social_distance' and validate_socialdist_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                global srv_url
                 set_social_distance(camera, scfg[camera][key])
                 service.set_social_distance_url(srv_url)
                 source = scfg[camera][key]['source']
                 activate_service = True
             elif key == 'people_counting' and validate_people_counting_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                global srv_url
                 set_people_counting(camera, scfg[camera][key])
                 service.set_service_people_counting_url(srv_url)
                 source = scfg[camera][key]['source']
