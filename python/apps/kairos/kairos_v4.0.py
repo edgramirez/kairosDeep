@@ -308,6 +308,7 @@ def validate_aforo_values(data):
         reference_line_coordinates = reference_line_coordinates.split(',')
         try:
             reference_line_coordinates = [(int(reference_line_coordinates[0]), int(reference_line_coordinates[1])), (int(reference_line_coordinates[2]), int(reference_line_coordinates[3]))]
+            data.update({'reference_line_coordinates': reference_line_coordinates})
         except Exception as e:
             log_error("Exception: Unable to create reference_line_coordinates".format(str(e)))
 
@@ -372,17 +373,17 @@ def validate_aforo_values(data):
         #
         #        if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
         #            log_error("{} value should be integer and positive".format(params))
-        elif data['area_of_interest']['type'] == 'parallel':
+        elif data['area_of_interest_type'] == 'parallel':
             print('type parallel not defined')
-        elif data['area_of_interest']['type'] == 'fixed':
-            inner_keys = ['topx', 'topy', 'height', 'width']
-            for param in inner_keys:
-                if param not in data['area_of_interest'].keys():
-                    log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
-                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
-                    log_error("{} value should be integer and positive".format(params))
+        #elif data['area_of_interest_type'] == 'fixed':
+        #    inner_keys = ['topx', 'topy', 'height', 'width']
+        #    for param in inner_keys:
+        #        if param not in data['area_of_interest'].keys():
+        #            log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
+        #        if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
+        #            log_error("{} value should be integer and positive".format(params))
         
-    if 'area_of_interest' in data.keys() and 'reference_line' in data.keys() and data['area_of_interest']['type'] == 'fixed':
+    if 'area_of_interest_UpDownLeftRight' in data.keys() and 'reference_line_coordinates' in data.keys() and data['area_of_interest_type'] == 'fixed':
         log_error("Incompatible parameters....  reference_line is not needed when having an area_of_interest type fixed")
 
     return True
