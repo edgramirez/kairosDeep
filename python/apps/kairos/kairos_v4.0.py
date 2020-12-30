@@ -603,9 +603,9 @@ def reading_server_config():
 
         for key in scfg[camera].keys():
             if key == 'video-people' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                print('emilioi.....\n{}\n'.format(scfg))
+                #print('emilioi.....\n{}\n'.format(scfg))
                 # si no esta con los datos 
-                quit()
+                #quit()
 
                 set_aforo(camera, scfg[camera][key])
                 service.set_aforo_url(srv_url)
