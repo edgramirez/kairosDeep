@@ -452,7 +452,7 @@ def mask_detection(mask_id, no_mask_ids):
 
     if mask_id in no_mask_ids:
         counter = counter + no_mask_ids[mask_id]
-        no_mask_ids.update({obj_meta.object_id: counter})
+        no_mask_ids.update({mask_id: counter})
 
         if counter == 4: # currently hardcoded to 4
             time_in_epoc = get_timestamp()
@@ -469,6 +469,6 @@ def mask_detection(mask_id, no_mask_ids):
             x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
             x.start()
     else:
-        no_mask_ids.update({obj_meta.object_id: counter})
+        no_mask_ids.update({mask_id: counter})
 
     return no_mask_ids
