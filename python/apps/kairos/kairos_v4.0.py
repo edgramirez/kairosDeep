@@ -393,6 +393,7 @@ def validate_aforo_values(data):
     if 'area_of_interest_UpDownLeftRight' in data.keys() and 'reference_line_coordinates' in data.keys() and data['area_of_interest_type'] == 'fixed':
         log_error("Incompatible parameters....  reference_line is not needed when having an area_of_interest type fixed")
 
+
     return True
 
 
@@ -450,7 +451,7 @@ def read_server_info():
     global srv_url
 
     machine_id = get_machine_macaddress()
-    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
     data = {"id": machine_id}
     url = srv_url + 'tx/device.getConfigByProcessDevice'
     response = service.send_json(data, 'POST', url)
@@ -602,6 +603,10 @@ def reading_server_config():
 
         for key in scfg[camera].keys():
             if key == 'video-people' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
+                print('emilioi.....\n{}\n'.format(scfg))
+                # si no esta con los datos 
+                quit()
+
                 set_aforo(camera, scfg[camera][key])
                 service.set_aforo_url(srv_url)
                 set_initial_last_disappeared(camera)

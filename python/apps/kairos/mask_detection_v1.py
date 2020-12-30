@@ -417,7 +417,7 @@ def read_server_info():
     global srv_url
 
     machine_id = get_machine_macaddress()
-    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
     data = {"id": machine_id}
     url = srv_url + 'tx/device.getConfigByProcessDevice'
     response = service.send_json(data, 'POST', url)
