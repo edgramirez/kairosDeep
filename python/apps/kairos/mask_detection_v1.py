@@ -410,7 +410,8 @@ def getHwAddr(ifname):
 def get_machine_macaddress(index = 0):
     list_of_interfaces = []
     list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
-    return getHwAddr(list_of_interfaces[index])
+    #return getHwAddr(list_of_interfaces[index])
+    return getHwAddr("eth0")
 
 
 def read_server_info():
@@ -442,7 +443,7 @@ def reading_server_config():
         source = None
 
         for key in scfg[camera].keys():
-            if key == 'video-socialDistancing' and scfg[camera][key]['enabled'] == "True":
+            if key == 'video-maskDetection' and scfg[camera][key]['enabled'] == "True":
                 global srv_url
                 source = scfg[camera][key]['source']
                 set_no_mask_ids_dict(camera)
@@ -553,7 +554,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     counter += 1
 
                 if counter == 4: # corrently hardcoded to 4
-                    service.mask_detection(obj_meta.object_id)
+                    service.mask_detection(obj_meta.object_id,no_mask_ids)
 
                 no_mask_ids.update({obj_meta.object_id: counter})
                 set_no_mask_ids_dict(camera_id, no_mask_ids)
