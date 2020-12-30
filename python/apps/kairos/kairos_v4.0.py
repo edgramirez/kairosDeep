@@ -342,7 +342,6 @@ def validate_aforo_values(data):
             except Exception as e:
                 log_error("Exception: Unable to create reference_line_color".format(str(e)))
 
-
         if not isinstance(data['reference_line_color'], list):
             log_error("coordinates color elements, most be a list of integers")
 
@@ -365,6 +364,18 @@ def validate_aforo_values(data):
 
         if data['area_of_interest_type'] not in ['horizontal', 'parallel', 'fixed']:
             log_error("'type' object value must be 'horizontal', 'parallel' or 'fixed'")
+
+        UpDownLeftRight = data['area_of_interest_UpDownLeftRight'].replace(' ', '')
+        UpDownLeftRight = reference_line_color.split(',')
+        try:
+            reference_line_color = [int(reference_line_color[0]), int(reference_line_color[1]), int(reference_line_color[2]), int(reference_line_color[3])]
+            data.update({'area_of_interest_UpDownLeftRight': {'up': 90, 'down': 90, 'left': 0, 'right': 0} }) 
+        except Exception as e:
+            log_error("Exception: Unable to create reference_line_color".format(str(e)))
+
+
+
+
 
         #if data['area_of_interest_type'] == 'horizontal':
         #    horizontal_keys = ['up', 'down', 'left', 'right']
