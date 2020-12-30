@@ -56,7 +56,7 @@ def set_service_people_counting_url(srv_url):
 
 def set_mask_detection_url(srv_url):
     global mask_detection_url
-    mask_detection_url = srv_url + 'SERVICE_NOT_DEFINED_'
+    mask_detection_url = srv_url + 'tx/video-maskDetection.endpoint'
 
 
 def file_exists(file_name):
@@ -466,8 +466,8 @@ def mask_detection(mask_id, no_mask_ids):
                 }
 
             print('Mask detection', data, mask_detection_url, 'PUT')
-            #x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
-            #x.start()
+            x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
+            x.start()
     else:
         no_mask_ids.update({obj_meta.object_id: counter})
 
