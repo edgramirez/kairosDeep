@@ -88,5 +88,5 @@ workspace-size=228
 pre-cluster-threshold=0.2
 eps=0.2
 group-threshold=1
-#detected-max-w=280
-#detected-max-h=400
+detected-max-w=280
+detected-max-h=400
