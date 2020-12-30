@@ -447,28 +447,42 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
             i += 1
 
 
-def mask_detection(mask_id, no_mask_ids):
-    counter = 1
+#def mask_detection(mask_id, no_mask_ids, reported_class = NO_MASK):
+def mask_detection(mask_id, no_mask_ids, reported_class = 0):
+    time_in_epoc = get_timestamp()
+    data_id = str(time_in_epoc) + '_' + str(mask_id)
+    data = {
+        'id': data_id,
+        'mask': reported_class,
+        'camera-id': camera_id,
+        '#date-start': time_in_epoc,
+        '#date-end': time_in_epoc
+        }
 
-    if mask_id in no_mask_ids:
-        counter = counter + no_mask_ids[mask_id]
-        no_mask_ids.update({mask_id: counter})
+    print('Mask detection', data, mask_detection_url, 'PUT')
+    x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
+    x.start()
 
-        if counter == 4: # currently hardcoded to 4
-            time_in_epoc = get_timestamp()
-            data_id = str(time_in_epoc) + '_' + mask_id
-            data = {
-                'id': data_id,
-                'mask': 0,
-                'camera-id': camera_id,
-                '#date-start': time_in_epoc,
-                '#date-end': time_in_epoc
-                }
-
-            print('Mask detection', data, mask_detection_url, 'PUT')
-            x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
-            x.start()
-    else:
-        no_mask_ids.update({mask_id: counter})
-
-    return no_mask_ids
+    #counter = 1
+    #
+    #if mask_id in no_mask_ids:
+    #    counter = counter + no_mask_ids[mask_id]
+    #    no_mask_ids.update({mask_id: counter})
+    #
+    #    if counter == 4: # currently hardcoded to 4
+    #        time_in_epoc = get_timestamp()
+    #        data_id = str(time_in_epoc) + '_' + mask_id
+    #        data = {
+    #            'id': data_id,
+    #            'mask': 0,
+    #            'camera-id': camera_id,
+    #            '#date-start': time_in_epoc,
+    #            '#date-end': time_in_epoc
+    #            }
+    #
+    #        print('Mask detection', data, mask_detection_url, 'PUT')
+    #        x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
+    #        x.start()
+    #else:
+    #    no_mask_ids.update({mask_id: counter})
+    #return no_mask_ids
