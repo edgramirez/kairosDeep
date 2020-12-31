@@ -448,7 +448,7 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
 
 
 #def mask_detection(mask_id, no_mask_ids, reported_class = NO_MASK):
-def mask_detection(mask_id, no_mask_ids, reported_class = 0):
+def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
     time_in_epoc = get_timestamp()
     data_id = str(time_in_epoc) + '_' + str(mask_id)
     data = {
