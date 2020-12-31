@@ -181,7 +181,7 @@ def set_social_distance(key_id, social_distance_data):
 
     if not isinstance(int(float(social_distance_data['tolerated_distance'])), int) and int(float(social_distance_data['tolerated_distance'])) > 3:
         log_error("'social_distance_data.tolarated_distance' parameter, most be and integer bigger than 3 pixels")
-    else
+    else:
         new_value = int(float(social_distance_data['tolerated_distance']))
         social_distance_data.update({'tolerated_distance': new_value})
 
