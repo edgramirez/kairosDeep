@@ -399,10 +399,10 @@ def validate_aforo_values(data):
 
 def validate_socialdist_values(data):
 
-    validate_keys('aforo', data, ['enabled', 'tolerated_distance', 'persistence_time'])
+    validate_keys('video-socialDistancing', data, ['enabled', 'tolerated_distance', 'persistence_time'])
 
     if not isinstance(data['enabled'], str):
-        log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
+        log_error("'enabled' parameter, most be string: {}".format(data['enabled']))
     
     if not isinstance(float(data['tolerated_distance']), float) and float(data['tolerated_distance']) > 0:
         log_error("tolerated_distance element, most be a positive integer")
@@ -603,10 +603,6 @@ def reading_server_config():
 
         for key in scfg[camera].keys():
             if key == 'video-people' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                #print('emilioi.....\n{}\n'.format(scfg))
-                # si no esta con los datos 
-                #quit()
-
                 set_aforo(camera, scfg[camera][key])
                 service.set_aforo_url(srv_url)
                 set_initial_last_disappeared(camera)
