@@ -179,13 +179,19 @@ def set_social_distance(key_id, social_distance_data):
     if social_distance_data['enabled'] not in ["True", "False"]:
         log_error("'social_distance_data' parameter, most be True or False")
 
-    if not isinstance(social_distance_data['tolerated_distance'], int) and social_distance_data['tolerated_distance'] > 3:
+    if not isinstance(int(float(social_distance_data['tolerated_distance'])), int) and int(float(social_distance_data['tolerated_distance'])) > 3:
         log_error("'social_distance_data.tolarated_distance' parameter, most be and integer bigger than 3 pixels")
+    else
+        new_value = int(float(social_distance_data['tolerated_distance']))
+        social_distance_data.update({'tolerated_distance': new_value})
 
-    if not (isinstance(social_distance_data['persistence_time'], int) or isinstance(social_distance_data['persistence_time'], float)) and social_distance_data['persistence_time'] > -1:
+    if not isinstance(int(float(social_distance_data['persistence_time'])), int) and int(float(social_distance_data['persistence_time'])) > -1:
         log_error("'social_distance_data.persistence_time' parameter, most be a positive integer/floater")
+    else:
+        new_value = int(float(social_distance_data['persistence_time'])) * 1000
+        social_distance_data.update({'tolerated_distance': new_value})
 
-    social_distance_data.update({'persistence_time': social_distance_data['persistence_time'] * 1000})
+    #social_distance_data.update({'persistence_time': social_distance_data['persistence_time'] * 1000})
 
     social_distance_list.update(
             {
