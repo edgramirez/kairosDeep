@@ -554,7 +554,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     counter += 1
 
                 if counter == 4: # corrently hardcoded to 4
-                    service.mask_detection(obj_meta.object_id,no_mask_ids)
+                    service.mask_detection(obj_meta.object_id,no_mask_ids,camera_id)
 
                 no_mask_ids.update({obj_meta.object_id: counter})
                 set_no_mask_ids_dict(camera_id, no_mask_ids)
