@@ -286,12 +286,12 @@ def validate_keys(service, data, list_of_keys):
 
     if not isinstance(data, dict):
         log_error("'data' parameter, most be a dictionary")
-
+    print('print2', data)
     if 'enabled' not in data:
         return False
 
-    for key in list_of_keys:
-        if 'enabled' in data.keys() and data.keys() == 'False':
+    for key in data.keys():
+        if key == 'enabled' and data[key] == 'False':
             return False
 
     for key in list_of_keys:
@@ -408,6 +408,7 @@ def validate_aforo_values(data):
 
 def validate_socialdist_values(data):
 
+    print('print1', data, '...', ['enabled', 'tolerated_distance', 'persistence_time'])
     if not validate_keys('video-socialDistancing', data, ['enabled', 'tolerated_distance', 'persistence_time']):
         return False
 
