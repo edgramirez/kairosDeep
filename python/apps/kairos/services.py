@@ -6,6 +6,10 @@ import time
 import requests
 import threading
 
+import fcntl
+import socket
+import struct
+
 from math import sqrt
 from random import seed, randint
 from datetime import datetime
@@ -23,39 +27,46 @@ global social_distance_enabled
 global aforo_url
 global social_distance_url
 global people_counting_url
+global srv_url
 
+srv_url = 'https://mit.kairosconnect.app/'
+header = None
 
 first_time_set = set()
 last_time_set = set()
 
 
-def set_header(token_file):
-    if isinstance(token_file, str):
-        global header
-        token_handler = open_file(token_file, 'r+')
-        if token_handler:
-            header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
-            return True
-    return False
+def set_header(token_file = None):
+    if token_file is None:
+        token_file = '.token'
+
+    global header
+
+    if header is None:
+        if isinstance(token_file, str):
+            token_handler = open_file(token_file, 'r+')
+            if token_handler:
+                header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
+                print('Header correctly set')
 
 
-def set_aforo_url(srv_url):
-    global aforo_url
+def set_aforo_url():
+    global aforo_url, srv_url
     aforo_url = srv_url + 'tx/video-people.endpoint'
 
 
-def set_social_distance_url(srv_url):
-    global social_distance_url
+def set_social_distance_url():
+    global social_distance_url, srv_url
     social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
 
 
-def set_service_people_counting_url(srv_url):
-    global people_counting_url
+def set_service_people_counting_url():
+    global people_counting_url, srv_url
     people_counting_url = srv_url + 'SERVICE_NOT_DEFINED_'
 
 
-def set_mask_detection_url(srv_url):
-    global mask_detection_url
+def set_mask_detection_url():
+    global mask_detection_url, srv_url
     mask_detection_url = srv_url + 'tx/video-maskDetection.endpoint'
 
 
@@ -73,14 +84,19 @@ def open_file(file_name, option='a+'):
     return False
 
 
-def create_file(file_name):
-    os.remove(file_name)
+def create_file(file_name, content = None):
 
-    if not file_exists(file_name):
+    if file_exists(file_name):
+        os.remove(file_name)
+        if file_exists(file_name):
+            raise Exception('unable to delete file: %s' % file_name)
+
+    if content:
+        with open(file_name, 'w+') as f:
+            f.write(content)
+    else:
         with open(file_name, 'w+') as f:
             f.close()
-    else:
-        raise Exception('unable to delete file: %s' % file_name)
 
     return True
 
@@ -109,6 +125,46 @@ def get_supported_actions():
 
 def get_timestamp():
     return int(time.time() * 1000)
+
+
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
+    return ':'.join('%02x' % b for b in info[18:24])
+
+
+def get_ip_address(ifname):
+    return [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+
+
+def get_machine_macaddress(index = 0):
+    list_of_interfaces = []
+    list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
+
+    for iface_name in list_of_interfaces:
+        ip = get_ip_address(iface_name)
+        if ip:
+            return getHwAddr(iface_name)
+
+
+def get_server_info(abort_if_exception = True):
+    global srv_url
+
+    machine_id = get_machine_macaddress()
+    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    data = {"id": machine_id}
+    url = srv_url + 'tx/device.getConfigByProcessDevice'
+
+    if abort_if_exception:
+        response = send_json(data, 'POST', url)
+    else:
+        options = {'abort_if_exception': False}
+        response = send_json(data, 'POST', url, **options)
+
+    if response:
+        return json.loads(response.text)
+    else:
+        return False
 
 
 def check_if_object_is_in_area2(object_coordinates, reference_line, m, b):
@@ -166,14 +222,17 @@ def is_point_insde_polygon(x, y, polygon_length, polygon):
 
 
 def send_json(payload, action, url = None, **options):
+    set_header()
     global header
 
     if action not in get_supported_actions() or url is None:
         raise Exception('Requested action: ({}) not supported. valid options are:'.format(action, get_supported_actions()))
 
-    retries = options.get('retries', 5)
-    sleep_time = options.get('sleep_time', 3)
+    retries = options.get('retries', 2)
+    sleep_time = options.get('sleep_time', 1)
     expected_response = options.get('expected_response', 200)
+    abort_if_exception = options.get('abort_if_exception', True)
+
     data = json.dumps(payload)
 
     # emilio comenta esto para insertar en MongoDB
@@ -191,21 +250,21 @@ def send_json(payload, action, url = None, **options):
                 r = requests.delete(url, data=data, headers=header)
             return r
         except requests.exceptions.ConnectionError as e:
-            time.sleep(1)
-            if retry == retries - 1:
-                raise Exception("Unable to Connect to the server after {} retries\n. Original exception".format(retry, str(e)))
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Unable to Connect to the server after {} retries\n. Original exception: {}".format(retry, str(e)))
         except requests.exceptions.HTTPError as e:
-            time.sleep(1)
-            if retry == retries - 1:
-                raise Exception("Invalid HTTP response in {} retries\n. Original exception".format(retry, str(e)))
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Invalid HTTP response in {} retries\n. Original exception: {}".format(retry, str(e)))
         except requests.exceptions.Timeout as e:
-            time.sleep(1)
-            if retry == retries - 1:
-                raise Exception("Timeout reach in {} retries\n. Original exception".format(retry, str(e)))
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Timeout reach in {} retries\n. Original exception: {}".format(retry, str(e)))
         except requests.exceptions.TooManyRedirects as e:
-            time.sleep(1)
-            if retry == retries - 1:
-                raise Exception("Too many redirection in {} retries\n. Original exception".format(retry, str(e)))
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Too many redirection in {} retries\n. Original exception: {}".format(retry, str(e)))
 
 
 def people_counting(camera_id, total_objects):
@@ -447,7 +506,6 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
             i += 1
 
 
-#def mask_detection(mask_id, no_mask_ids, reported_class = NO_MASK):
 def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
     time_in_epoc = get_timestamp()
     data_id = str(time_in_epoc) + '_' + str(mask_id)
@@ -463,26 +521,15 @@ def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
     x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
     x.start()
 
-    #counter = 1
-    #
-    #if mask_id in no_mask_ids:
-    #    counter = counter + no_mask_ids[mask_id]
-    #    no_mask_ids.update({mask_id: counter})
-    #
-    #    if counter == 4: # currently hardcoded to 4
-    #        time_in_epoc = get_timestamp()
-    #        data_id = str(time_in_epoc) + '_' + mask_id
-    #        data = {
-    #            'id': data_id,
-    #            'mask': 0,
-    #            'camera-id': camera_id,
-    #            '#date-start': time_in_epoc,
-    #            '#date-end': time_in_epoc
-    #            }
-    #
-    #        print('Mask detection', data, mask_detection_url, 'PUT')
-    #        x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
-    #        x.start()
-    #else:
-    #    no_mask_ids.update({mask_id: counter})
-    #return no_mask_ids
+
+def read_server_info():
+    global srv_url
+
+    machine_id = get_machine_macaddress()
+    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    data = {"id": machine_id}
+    url = srv_url + 'tx/device.getConfigByProcessDevice'
+    response = service.send_json(data, 'POST', url)
+
+    return json.loads(response.text)
+

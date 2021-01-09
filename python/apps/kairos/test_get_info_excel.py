@@ -74,14 +74,16 @@ def getHwAddr(ifname):
 def get_machine_macaddress(index = 0):
     list_of_interfaces = []
     list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
-    return getHwAddr(list_of_interfaces[index])
+    #return getHwAddr(list_of_interfaces[index])
+    return getHwAddr('ens33')
 
 
 def read_server_info():
     global srv_url
 
     machine_id = get_machine_macaddress()
-    #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+    print(machine_id)
+    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
     data = {"id": machine_id}
     url = srv_url + 'tx/device.getConfigByProcessDevice'
     response = service.send_json(data, 'POST', url)

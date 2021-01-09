@@ -52,11 +52,7 @@ import time
 import math
 import datetime
 
-import fcntl
-import socket
-import struct
 import json
-import requests
 
 
 #
@@ -101,7 +97,6 @@ global people_distance_list
 global people_counting_counters
 global camera_list
 global source_list
-global srv_url
 global token_file
 global entradas_salidas
 global initial_last_disappeared
@@ -275,14 +270,6 @@ def get_camera_id(key_id):
     return camera_list[key_id]
 
 
-def set_server_url(url):
-    if isinstance(url, str):
-        global srv_url
-        srv_url = url
-        return True
-    log_error("'url' parameter, most be a valid string")
-
-
 def set_token(token_file_name):
     if isinstance(token_file_name, str) and service.file_exists(token_file_name):
         global token_file
@@ -401,39 +388,8 @@ def log_error(msg):
     quit()
 
 
-def getHwAddr(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
-    return ':'.join('%02x' % b for b in info[18:24])
-
-
-def get_machine_macaddress(index = 0):
-    list_of_interfaces = []
-    list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
-    #return getHwAddr(list_of_interfaces[index])
-    return getHwAddr("eth0")
-
-
-def read_server_info():
-    global srv_url
-
-    machine_id = get_machine_macaddress()
-    #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
-    data = {"id": machine_id}
-    url = srv_url + 'tx/device.getConfigByProcessDevice'
-    response = service.send_json(data, 'POST', url)
-
-    return json.loads(response.text)
-
-
 def reading_server_config():
-    if not service.set_header('.token'):
-        log_error("Unable to set the 'Token' from file .token: ")
-
-    set_server_url('https://mit.kairosconnect.app/')
-
-    # get server infomation based on the nano mac_address
-    scfg = read_server_info()
+    scfg = services.read_server_info()
 
     for camera in scfg.keys():
         if camera == 'OK':
@@ -444,10 +400,9 @@ def reading_server_config():
 
         for key in scfg[camera].keys():
             if key == 'video-maskDetection' and scfg[camera][key]['enabled'] == "True":
-                global srv_url
                 source = scfg[camera][key]['source']
                 set_no_mask_ids_dict(camera)
-                service.set_mask_detection_url(srv_url)
+                service.set_mask_detection_url()
                 activate_service = True
 
         if activate_service:

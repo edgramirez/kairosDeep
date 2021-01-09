@@ -52,11 +52,7 @@ import time
 import math
 import datetime
 
-import fcntl
-import socket
-import struct
 import json
-import requests
 
 #
 #  version 2.1 solo detectara personas
@@ -102,7 +98,6 @@ global people_distance_list
 global people_counting_counters
 global camera_list
 global source_list
-global srv_url
 global token_file
 global entradas_salidas
 global initial_last_disappeared
@@ -260,14 +255,6 @@ def set_camera(value):
 def get_camera_id(key_id):
     global camera_list
     return camera_list[key_id]
-
-
-def set_server_url(url):
-    if isinstance(url, str):
-        global srv_url
-        srv_url = url
-        return True
-    log_error("'url' parameter, most be a valid string")
 
 
 def set_token(token_file_name):
@@ -451,31 +438,6 @@ def log_error(msg):
     quit()
 
 
-
-def getHwAddr(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
-    return ':'.join('%02x' % b for b in info[18:24])
-
-
-def get_machine_macaddress(index = 0):
-    list_of_interfaces = []
-    list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
-    return getHwAddr(list_of_interfaces[index])
-
-
-def read_server_info():
-    global srv_url
-
-    machine_id = get_machine_macaddress()
-    #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
-    data = {"id": machine_id}
-    url = srv_url + 'tx/device.getConfigByProcessDevice'
-    response = service.send_json(data, 'POST', url)
-
-    return json.loads(response.text)
-
-
 def set_aforo(key_id, aforo_data):
     global aforo_list
 
@@ -589,27 +551,9 @@ def set_aforo(key_id, aforo_data):
         log_error("Missing configuration parameters for 'aforo' service")
 
 
-def read_server_info():
-    global srv_url
-
-    machine_id = get_machine_macaddress()
-    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
-    data = {"id": machine_id}
-    url = srv_url + 'tx/device.getConfigByProcessDevice'
-    response = service.send_json(data, 'POST', url)
-
-    return json.loads(response.text)
-
-
 def reading_server_config():
-    if not service.set_header('.token'):
-        log_error("Unable to set the 'Token' from file .token: ")
-
-    set_server_url('https://mit.kairosconnect.app/')
-
     # get server infomation based on the nano mac_address
-    scfg = read_server_info()
-    global srv_url
+    scfg = service.read_server_info()
 
     for camera in scfg.keys():
         if camera == 'OK':
@@ -621,18 +565,18 @@ def reading_server_config():
         for key in scfg[camera].keys():
             if key == 'video-people' and validate_aforo_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
                 set_aforo(camera, scfg[camera][key])
-                service.set_aforo_url(srv_url)
+                service.set_aforo_url()
                 set_initial_last_disappeared(camera)
                 source = scfg[camera][key]['source']
                 activate_service = True
             elif key == 'video-socialDistancing' and validate_socialdist_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
                 set_social_distance(camera, scfg[camera][key])
-                service.set_social_distance_url(srv_url)
+                service.set_social_distance_url()
                 source = scfg[camera][key]['source']
                 activate_service = True
             elif key == 'people_counting' and validate_people_counting_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
                 set_people_counting(camera, scfg[camera][key])
-                service.set_service_people_counting_url(srv_url)
+                service.set_service_people_counting_url()
                 source = scfg[camera][key]['source']
                 activate_service = True
             else:
