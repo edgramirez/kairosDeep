@@ -11,7 +11,7 @@ for retries in range(retries):
 
     if nano_config:
         got_config_from_server = True
-        config_file = 'configs/Server_Emulatation_configs.py'
+        config_file = 'configs/Server_Emulatation_configs_from_Excel.py'
 
         content = str(nano_config)
         if not service.file_exists(config_file):
