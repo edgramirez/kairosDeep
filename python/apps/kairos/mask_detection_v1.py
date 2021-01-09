@@ -663,7 +663,7 @@ def main():
     # Se crea elemento que acepta todo tipo de video o RTSP
     i = 0
     for source in get_sources():
-        print("Creating source_bin...........", i, " \n ")
+        print("Creating source_bin {}.- for: {}...........".format(i, source))
         uri_name = source
 
         if uri_name.find("rtsp://") == 0:
