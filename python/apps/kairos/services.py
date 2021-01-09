@@ -36,38 +36,13 @@ first_time_set = set()
 last_time_set = set()
 
 
-def set_header(token_file = None):
-    if token_file is None:
-        token_file = '.token'
+##### GENERIC FUNCTIONS
 
-    global header
-
-    if header is None:
-        if isinstance(token_file, str):
-            token_handler = open_file(token_file, 'r+')
-            if token_handler:
-                header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
-                print('Header correctly set')
-
-
-def set_aforo_url():
-    global aforo_url, srv_url
-    aforo_url = srv_url + 'tx/video-people.endpoint'
-
-
-def set_social_distance_url():
-    global social_distance_url, srv_url
-    social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
-
-
-def set_service_people_counting_url():
-    global people_counting_url, srv_url
-    people_counting_url = srv_url + 'SERVICE_NOT_DEFINED_'
-
-
-def set_mask_detection_url():
-    global mask_detection_url, srv_url
-    mask_detection_url = srv_url + 'tx/video-maskDetection.endpoint'
+def api_get_number_of_frames_per_second():
+    '''
+    TODO: function not yet defined
+    '''
+    return None
 
 
 def file_exists(file_name):
@@ -101,13 +76,6 @@ def create_file(file_name, content = None):
     return True
 
 
-def api_get_number_of_frames_per_second():
-    '''
-    TODO: function not yet defined
-    '''
-    return None
-
-
 def get_number_of_frames_per_second():
     global nfps
 
@@ -125,6 +93,20 @@ def get_supported_actions():
 
 def get_timestamp():
     return int(time.time() * 1000)
+
+
+def set_header(token_file = None):
+    if token_file is None:
+        token_file = '.token'
+
+    global header
+
+    if header is None:
+        if isinstance(token_file, str):
+            token_handler = open_file(token_file, 'r+')
+            if token_handler:
+                header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
+                print('Header correctly set')
 
 
 def getHwAddr(ifname):
@@ -165,6 +147,52 @@ def get_server_info(abort_if_exception = True):
         return json.loads(response.text)
     else:
         return False
+
+
+def send_json(payload, action, url = None, **options):
+    set_header()
+    global header
+
+    if action not in get_supported_actions() or url is None:
+        raise Exception('Requested action: ({}) not supported. valid options are:'.format(action, get_supported_actions()))
+
+    retries = options.get('retries', 2)
+    sleep_time = options.get('sleep_time', 1)
+    expected_response = options.get('expected_response', 200)
+    abort_if_exception = options.get('abort_if_exception', True)
+
+    data = json.dumps(payload)
+
+    # emilio comenta esto para insertar en MongoDB
+    # return True
+
+    for retry in range(retries):
+        try:
+            if action == 'GET':
+                r = requests.get(url, data=data, headers=header)
+            elif action == 'POST':
+                r = requests.post(url, data=data, headers=header)
+            elif action == 'PUT':
+                r = requests.put(url, data=data, headers=header)
+            else:
+                r = requests.delete(url, data=data, headers=header)
+            return r
+        except requests.exceptions.ConnectionError as e:
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Unable to Connect to the server after {} retries\n. Original exception: {}".format(retry, str(e)))
+        except requests.exceptions.HTTPError as e:
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Invalid HTTP response in {} retries\n. Original exception: {}".format(retry, str(e)))
+        except requests.exceptions.Timeout as e:
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Timeout reach in {} retries\n. Original exception: {}".format(retry, str(e)))
+        except requests.exceptions.TooManyRedirects as e:
+            time.sleep(sleep_time)
+            if retry == retries - 1 and abort_if_exception:
+                raise Exception("Too many redirection in {} retries\n. Original exception: {}".format(retry, str(e)))
 
 
 def check_if_object_is_in_area2(object_coordinates, reference_line, m, b):
@@ -221,50 +249,11 @@ def is_point_insde_polygon(x, y, polygon_length, polygon):
     return False
 
 
-def send_json(payload, action, url = None, **options):
-    set_header()
-    global header
+##### PEOPLE COUNTING
 
-    if action not in get_supported_actions() or url is None:
-        raise Exception('Requested action: ({}) not supported. valid options are:'.format(action, get_supported_actions()))
-
-    retries = options.get('retries', 2)
-    sleep_time = options.get('sleep_time', 1)
-    expected_response = options.get('expected_response', 200)
-    abort_if_exception = options.get('abort_if_exception', True)
-
-    data = json.dumps(payload)
-
-    # emilio comenta esto para insertar en MongoDB
-    # return True
-
-    for retry in range(retries):
-        try:
-            if action == 'GET':
-                r = requests.get(url, data=data, headers=header)
-            elif action == 'POST':
-                r = requests.post(url, data=data, headers=header)
-            elif action == 'PUT':
-                r = requests.put(url, data=data, headers=header)
-            else:
-                r = requests.delete(url, data=data, headers=header)
-            return r
-        except requests.exceptions.ConnectionError as e:
-            time.sleep(sleep_time)
-            if retry == retries - 1 and abort_if_exception:
-                raise Exception("Unable to Connect to the server after {} retries\n. Original exception: {}".format(retry, str(e)))
-        except requests.exceptions.HTTPError as e:
-            time.sleep(sleep_time)
-            if retry == retries - 1 and abort_if_exception:
-                raise Exception("Invalid HTTP response in {} retries\n. Original exception: {}".format(retry, str(e)))
-        except requests.exceptions.Timeout as e:
-            time.sleep(sleep_time)
-            if retry == retries - 1 and abort_if_exception:
-                raise Exception("Timeout reach in {} retries\n. Original exception: {}".format(retry, str(e)))
-        except requests.exceptions.TooManyRedirects as e:
-            time.sleep(sleep_time)
-            if retry == retries - 1 and abort_if_exception:
-                raise Exception("Too many redirection in {} retries\n. Original exception: {}".format(retry, str(e)))
+def set_service_people_counting_url():
+    global people_counting_url, srv_url
+    people_counting_url = srv_url + 'SERVICE_NOT_DEFINED_'
 
 
 def people_counting(camera_id, total_objects):
@@ -284,6 +273,13 @@ def people_counting(camera_id, total_objects):
     #print('People_counting first time..POST', data, people_counting_url)
     #x = threading.Thread(target=send_json, args=(data, 'POST', srv_url))
     #x.start()
+
+
+##### AFORO
+
+def set_aforo_url():
+    global aforo_url, srv_url
+    aforo_url = srv_url + 'tx/video-people.endpoint'
 
 
 def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
@@ -380,6 +376,13 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
                 salidas += 1
 
     return entradas, salidas
+
+
+##### SOCIAL DISTANCE
+
+def set_social_distance_url():
+    global social_distance_url, srv_url
+    social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
 
 
 def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids):
@@ -506,6 +509,13 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
             i += 1
 
 
+#### MASK DETECTION
+
+def set_mask_detection_url():
+    global mask_detection_url, srv_url
+    mask_detection_url = srv_url + 'tx/video-maskDetection.endpoint'
+
+
 def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
     time_in_epoc = get_timestamp()
     data_id = str(time_in_epoc) + '_' + str(mask_id)
@@ -520,16 +530,3 @@ def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
     print('Mask detection', data, mask_detection_url, 'PUT')
     x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
     x.start()
-
-
-def read_server_info():
-    global srv_url
-
-    machine_id = get_machine_macaddress()
-    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
-    data = {"id": machine_id}
-    url = srv_url + 'tx/device.getConfigByProcessDevice'
-    response = service.send_json(data, 'POST', url)
-
-    return json.loads(response.text)
-

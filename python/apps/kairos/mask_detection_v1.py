@@ -389,7 +389,7 @@ def log_error(msg):
 
 
 def reading_server_config():
-    scfg = services.read_server_info()
+    scfg = services.get_server_info()
 
     for camera in scfg.keys():
         if camera == 'OK':

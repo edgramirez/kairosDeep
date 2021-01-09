@@ -552,8 +552,7 @@ def set_aforo(key_id, aforo_data):
 
 
 def reading_server_config():
-    # get server infomation based on the nano mac_address
-    scfg = service.read_server_info()
+    scfg = service.get_server_info()
 
     for camera in scfg.keys():
         if camera == 'OK':
