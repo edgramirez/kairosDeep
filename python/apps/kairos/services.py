@@ -119,29 +119,31 @@ def get_ip_address(ifname):
     return [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
 
-def get_machine_macaddress(index = 0):
-    list_of_interfaces = []
+def get_machine_macaddresses():
     list_of_interfaces = [item for item in os.listdir('/sys/class/net/') if item != 'lo']
+    macaddress_list = []
 
     for iface_name in list_of_interfaces:
         ip = get_ip_address(iface_name)
         if ip:
-            return getHwAddr(iface_name)
+            macaddress_list.append(getHwAddr(iface_name))
+            return macaddress_list
 
 
 def get_server_info(abort_if_exception = True):
     global srv_url
 
-    machine_id = get_machine_macaddress()
-    machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
-    data = {"id": machine_id}
     url = srv_url + 'tx/device.getConfigByProcessDevice'
 
-    if abort_if_exception:
-        response = send_json(data, 'POST', url)
-    else:
-        options = {'abort_if_exception': False}
-        response = send_json(data, 'POST', url, **options)
+    for machine_id in get_machine_macaddresses():
+        machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+        data = {"id": machine_id}
+        
+        if abort_if_exception:
+            response = send_json(data, 'POST', url)
+        else:
+            options = {'abort_if_exception': False}
+            response = send_json(data, 'POST', url, **options)
 
     if response:
         return json.loads(response.text)
