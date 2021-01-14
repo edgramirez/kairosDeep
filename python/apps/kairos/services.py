@@ -107,7 +107,9 @@ def set_header(token_file = None):
             if token_handler:
                 header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
                 print('Header correctly set')
+                return True
 
+    return False
 
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
