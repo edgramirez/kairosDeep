@@ -133,119 +133,6 @@ def get_no_mask_ids_dict(camera_id):
         return no_mask_ids_dict[camera_id]
 
 
-#def set_initial_last_disappeared(key_id):
-#    global initial_last_disappeared
-#    initial_last_disappeared.update({key_id: [{}, {}, []]})
-#    set_entrada_salida(key_id, 0, 0)
-
-
-#def get_initial_last(key_id):
-#    global initial_last_disappeared
-#    return initial_last_disappeared[key_id][0], initial_last_disappeared[key_id][1]
-
-
-#def set_disappeared(key_id, value = None):
-#    global initial_last_disappeared
-#    if value is None:
-#        initial_last_disappeared[key_id][2] = []
-#    else:
-#        initial_last_disappeared[key_id][2] = value
-
-
-#def get_disappeared(key_id):
-#    global initial_last_disappeared
-#    return initial_last_disappeared[key_id][2]
-
-
-#def get_people_counting_counter(key_id):
-#    global people_counting_counters
-
-#    if key_id and key_id in people_counting_counters.keys():
-#        return people_counting_counters[key_id]
-
-
-#def set_people_counting_counter(key_id, value):
-#    global people_counting_counters
-
-#    if key_id is not None and isinstance(value, int) and value > -1:
-#        people_counting_counters.update({key_id: value})
-
-
-#def set_people_counting(key_id, people_couting_data):
-#    global people_distance_list
-
-#    if not isinstance(people_couting_data, dict):
-#        log_error("'people_counting_data' parameter, most be a dictionary")
-
-#    if people_couting_data['enabled'] not in [True, False]:
-#        log_error("'people_counting_data' parameter, most be True or False")
-
-#    people_distance_list[key_id] = people_couting_data
-#    set_people_counting_counter(key_id, 0)
-
-
-#def set_social_distance(key_id, social_distance_data):
-#    global social_distance_list
-
-#    if not isinstance(social_distance_data, dict):
-#        log_error("'social_distance_data' parameter, most be a dictionary")
-
-#    if social_distance_data['enabled'] not in [True, False]:
-#        log_error("'social_distance_data' parameter, most be True or False")
-
-#    if not isinstance(social_distance_data['tolerated_distance'], int) and social_distance_data['tolerated_distance'] > 3:
-#        log_error("'social_distance_data.tolarated_distance' parameter, most be and integer bigger than 3 pixels")
-
-#    if not (isinstance(social_distance_data['persistence_time'], int) or isinstance(social_distance_data['persistence_time'], float)) and social_distance_data['persistence_time'] > -1:
-#        log_error("'social_distance_data.persistence_time' parameter, most be a positive integer/floater")
-
-#    social_distance_data.update({'persistence_time': social_distance_data['persistence_time'] * 1000})
-
-#    social_distance_list.update(
-#            {
-#                key_id: social_distance_data
-#            })
-
-#    social_distance_list[key_id].update({'social_distance_ids': {}})
-
-
-#def get_people_counting(key_id):
-#    global people_distance_list
-
-#    if key_id not in people_distance_list.keys():
-#        return {'enabled': False}
-
-#    return people_distance_list[key_id]
-
-
-#def get_social_distance(key_id, key = None):
-#    global social_distance_list
-
-#    if key_id not in social_distance_list.keys():
-#        return {'enabled': False}
-
-#    if social_distance_list:
-#        if key:
-#            return social_distance_list[key_id][key]
-#        else:
-#            return social_distance_list[key_id]
-
-
-#def get_aforo(key_id, key = None, second_key = None):
-#    global aforo_list
-
-#    if key_id not in aforo_list.keys():
-#        return {'enabled': False}
-
-#    if key is None:
-#        return aforo_list[key_id]
-#    else:
-#        if second_key is None:
-#            return aforo_list[key_id][key]
-#        else:
-#            return aforo_list[key_id][key][second_key]
-
-
 def set_sources(value):
     global source_list
 
@@ -284,101 +171,6 @@ def set_number_of_resources(num):
         number_of_resources = num
         return True
     log_error("'num={}' parameter, most be integer".format(num))
-
-
-#def set_entrada_salida(key_id, entrada, salida):
-#    global entradas_salidas
-#    entradas_salidas.update({key_id: [entrada, salida]})
-
-
-#def get_entrada_salida(key_id):
-#    global entradas_salidas
-#    return entradas_salidas[key_id][0], entradas_salidas[key_id][1]
-
-
-#def validate_keys(service, data, list_of_keys):
-
-#    if not isinstance(data, dict):
-#        log_error("'data' parameter, most be a dictionary")
-
-#    for key in list_of_keys:
-#        if key not in data.keys():
-#            log_error("'{}' missing parameter {}, in config file".format(service, key))
-
-
-#def validate_aforo_values(data):
-
-#    if 'enabled' not in data.keys():
-#        log_error('Key element enabled does not exists in the data provided:\n\n {}'.format(data))
-#    else:
-#        if not isinstance(data['enabled'], bool):
-#            log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
-
-#    if 'reference_line' in data.keys():
-#        if not isinstance(data['reference_line'], dict):
-#            log_error("reference_line, most be a dictionary. Undefining variable")
-
-#        if 'coordinates' not in data['reference_line'].keys():
-#            log_error("If reference must be defined through 'coordinates'")
-
-#        if len(data['reference_line']['coordinates']) != 2:
-#            log_error("coordinates, most be a pair of values.")
-
-#        for coordinate in data['reference_line']['coordinates']:
-#            if not isinstance(coordinate[0], int) or not isinstance(coordinate[1], int):
-#                log_error("coordinates elements, most be integers")
-
-#        if 'width' not in data['reference_line'].keys():
-#            log_error("Line width must be defined through 'width'")
-
-#        if not isinstance(data['reference_line']['width'], int):
-#            log_error("coordinates elements, most be integers")
-
-#        if 'color' not in data['reference_line'].keys():
-#            log_error("Line width must be defined through 'color'")
-
-#        if not isinstance(data['reference_line']['color'], list):
-#            log_error("coordinates color elements, most be a list of integers")
-
-#        for color in data['reference_line']['color']:
-#            if not isinstance(color, int) or color < 0 or color > 255:
-#                log_error("color values should be integers and within 0-255")
-
-#        if 'outside_area' not in data['reference_line'].keys():
-#            log_error("If reference line is define 'outside_area' must also be defined")
-#        else:
-#            if not isinstance(data['reference_line']['outside_area'], int) or data['reference_line']['outside_area'] not in [1, 2]:
-#                log_error("outside_area, most be an integer 1 or 2")
-
-#    if 'area_of_interest' in data.keys():
-#        if 'type' not in data['area_of_interest'].keys():
-#            log_error("Missing 'type' in 'area_of_interest' object")
-
-#        if data['area_of_interest']['type'] not in ['horizontal', 'parallel', 'fixed']:
-#            log_error("'type' object value must be 'horizontal', 'parallel' or 'fixed'")
-
-#        if data['area_of_interest']['type'] == 'horizontal':
-#            horizontal_keys = ['up', 'down', 'left', 'right']
-#            for param in horizontal_keys:
-#                if param not in data['area_of_interest'].keys():
-#                    log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
-
-#                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
-#                    log_error("{} value should be integer and positive".format(params))
-#        elif data['area_of_interest']['type'] == 'parallel':
-#            print('type parallel not defined')
-#        elif data['area_of_interest']['type'] == 'fixed':
-#            inner_keys = ['topx', 'topy', 'height', 'width']
-#            for param in inner_keys:
-#                if param not in data['area_of_interest'].keys():
-#                    log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
-#                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
-#                    log_error("{} value should be integer and positive".format(params))
-#        
-#    if 'area_of_interest' in data.keys() and 'reference_line' in data.keys() and data['area_of_interest']['type'] == 'fixed':
-#        log_error("Incompatible parameters....  reference_line is not needed when having an area_of_interest type fixed")
-
-#    return True
 
 
 def log_error(msg):
@@ -434,15 +226,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     current_pad_index = pyds.NvDsFrameMeta.cast(l_frame.data).pad_index
 
     camera_id = get_camera_id(current_pad_index)
-
-    #aforo_info = get_aforo(camera_id) 
-    #is_aforo_enabled = aforo_info['enabled']
-
-    #social_distance_info = get_social_distance(camera_id)
-    #is_social_distance_enabled = social_distance_info['enabled']
-
-    #people_counting_info = get_people_counting(camera_id)
-    #is_people_counting_enabled = people_counting_info['enabled']
 
     # Falta el servicio de mask Detection
     #
@@ -858,7 +641,6 @@ def main():
     print("Linking elements in the Pipeline \n")
     
     
-
     # lineas ya ejecutadas en el for anterior
     #sinkpad = streammux.get_request_pad("sink_0")
     #if not sinkpad:
@@ -868,7 +650,6 @@ def main():
     #    sys.stderr.write(" Unable to get source pad of decoder \n")
 
     
-
     srcpad.link(sinkpad)
     source_bin.link(h264parser)
     h264parser.link(decoder)     
