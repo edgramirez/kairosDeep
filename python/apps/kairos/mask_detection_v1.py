@@ -677,35 +677,37 @@ def main():
     else:
         nvosd.link(sink)
 
-    # create and event loop and feed gstreamer bus mesages to it
-    loop = GObject.MainLoop()
+    while True:
+        # create and event loop and feed gstreamer bus mesages to it
+        loop = GObject.MainLoop()
 
-    bus = pipeline.get_bus()
-    bus.add_signal_watch()
-    bus.connect("message", bus_call, loop)
+        bus = pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.connect("message", bus_call, loop)
 
-    # Lets add probe to get informed of the meta data generated, we add probe to
-    # the sink pad of the osd element, since by that time, the buffer would have
-    # had got all the metadata.
+        # Lets add probe to get informed of the meta data generated, we add probe to
+        # the sink pad of the osd element, since by that time, the buffer would have
+        # had got all the metadata.
 
-    tiler_src_pad = tracker.get_static_pad("src")
-    if not tiler_src_pad:
-        sys.stderr.write(" Unable to get src pad \n")
-    else:
-        tiler_src_pad.add_probe(Gst.PadProbeType.BUFFER, tiler_src_pad_buffer_probe, 0)
+        tiler_src_pad = tracker.get_static_pad("src")
+        if not tiler_src_pad:
+            sys.stderr.write(" Unable to get src pad \n")
+        else:
+            tiler_src_pad.add_probe(Gst.PadProbeType.BUFFER, tiler_src_pad_buffer_probe, 0)
     
-    print("Starting pipeline \n")
-    pipeline.set_state(Gst.State.PLAYING)
+        print("Starting pipeline \n")
+        pipeline.set_state(Gst.State.PLAYING)
     
-    # start play back and listed to events
-    try:
-        loop.run()
-    except Exception as e:
-        print("This line? "+str(e))
-        pass
+        # start play back and listed to events
+        try:
+            loop.run()
+        except Exception as e:
+            print("This line..............? "+str(e))
+            pass
 
-    # cleanup
-    pipeline.set_state(Gst.State.NULL)
+        # cleanup
+        print('Cleaning pipeline.............')
+        pipeline.set_state(Gst.State.NULL)
 
 
 if __name__ == '__main__':
