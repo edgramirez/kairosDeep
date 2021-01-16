@@ -472,6 +472,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     no_mask_ids = get_no_mask_ids_dict(camera_id)
 
     frame_number = 1 # to avoid not definition issue
+    clean_at_every = 43
+    use_ids = 1
     while l_frame is not None:
         try:
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
@@ -484,7 +486,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         num_rects = frame_meta.num_obj_meta
 
         #print(num_rects) ID numero de stream
-        ids = set()
+        use_ids = frame_number % clean_at_every
+        if use_ids == 0:
+            ids = set()
 
         # Ciclo interno donde se evaluan los objetos dentro del frame
         while l_obj is not None: 
@@ -498,9 +502,13 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             #y = obj_meta.rect_params.height
 
             obj_counter[obj_meta.class_id] += 1
+
+            # evaluating only if class_id is 1 (no mask)
             if obj_meta.class_id == 1:
 
-                ids.add(obj_meta.object_id)
+                # collecting all the ids on this frame
+                if use_ids == 0:
+                    ids.add(obj_meta.object_id)
 
                 if obj_meta.object_id not in no_mask_ids:
                     counter = 1
@@ -508,19 +516,15 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     counter = no_mask_ids[obj_meta.object_id]
                     counter += 1
 
-                if counter == 4: # corrently hardcoded to 4
-                    service.mask_detection(obj_meta.object_id,no_mask_ids,camera_id)
+                # only if counter is lower than 4 we save the counter value in set_no_mask_ids_dict
+                if counter < 4:
+                    no_mask_ids.update({obj_meta.object_id: counter})
+                    set_no_mask_ids_dict(camera_id, no_mask_ids)
 
-                no_mask_ids.update({obj_meta.object_id: counter})
-                set_no_mask_ids_dict(camera_id, no_mask_ids)
+                # only if the value is 4 we report the no mask to the server
+                if counter == 4: 
+                    service.mask_detection(obj_meta.object_id, no_mask_ids, camera_id)
 
-                #ids.add(obj_meta.object_id)
-                # print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK
-
-            #x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2)
-
-            #obj_counter[obj_meta.class_id] += 1
-            #obj_meta.rect_params.border_color.set(1.0, 0.0, 1.0, 0.0)
             py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Mask={} NoMaks={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_MASK], obj_counter[PGIE_CLASS_ID_NOMASK])
             #if obj_meta.class_id == 1:
             #    print("Clase No Mask : ",obj_meta.class_id," ID :", obj_meta.object_id)   # si object_id = 1 es NOMASK
@@ -544,7 +548,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         except StopIteration:
             break
 
-    if frame_number % 43 == 0:
+    if use_ids == 0:
         new_dict = {}
         no_mask_ids = get_no_mask_ids_dict(camera_id)
 
