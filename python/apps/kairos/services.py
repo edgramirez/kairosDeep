@@ -27,6 +27,7 @@ global social_distance_enabled
 global aforo_url
 global social_distance_url
 global people_counting_url
+global plate_detection_url
 global srv_url
 
 srv_url = 'https://mit.kairosconnect.app/'
@@ -534,3 +535,12 @@ def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
     print('Mask detection', data, mask_detection_url, 'PUT')
     x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
     x.start()
+
+
+#### PLATE DETECTION
+
+def set_plate_detection_url():
+    global plate_detection_url, srv_url
+    plate_detection_url = srv_url + 'TO_BE_SETUP______tx/video-plateDetection.endpoint'
+
+
