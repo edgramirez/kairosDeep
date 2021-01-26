@@ -100,7 +100,6 @@ CURRENT_DIR = os.getcwd()
 # Matriz de frames per second, Se utiliza en tiler
 fps_streams = {}
 
-global aforo_list
 global social_distance_list
 global people_distance_list
 global people_counting_counters
@@ -115,7 +114,6 @@ global plates_dict
 
 initial_last_disappeared = {}
 source_list = []
-#aforo_list = {}
 #people_distance_list = {}
 #people_counting_counters = {}
 camera_list = []
@@ -139,6 +137,135 @@ def get_plate_ids_dict(camera_id):
 
     if camera_id in plates_dict:
         return plates_dict[camera_id]
+
+
+def get_plates_info(key_id, key = None, second_key = None):
+    global plates_dict
+
+    if key_id not in plates_dict.keys():
+        return {'enabled': False}
+
+    if key is None:
+        return plates_dict[key_id]
+    else:
+        if second_key is None:
+            return plates_dict[key_id][key]
+        else:
+            return plates_dict[key_id][key][second_key]
+
+
+def set_reference_line_and_area_of_interest(camera_id, data):
+    # use plates_dict for plates script 
+    global plates_dict
+
+    if 'reference_line_coordinates' in data and 'area_of_interest' in data and data['area_of_interest_type'] in ['horizontal', 'parallel']:
+        if data['area_of_interest_type'] == 'horizontal':
+            # generating left_top_xy, width and height
+            x1 = data['reference_line_coordinates'][0][0]
+            y1 = data['reference_line_coordinates'][0][1]
+            x2 = data['reference_line_coordinates'][1][0]
+            y2 = data['reference_line_coordinates'][1][1]
+
+            left = data['area_of_interest']['left']
+            right = data['area_of_interest']['right']
+            up = data['area_of_interest']['up']
+            down = data['area_of_interest']['down']
+
+            if x1 < x2:
+                topx = x1 - left
+            else:
+                topx = x2 - left
+
+            # adjusting if value is negative
+            if topx < 0:
+                topx = 0
+
+            if y1 < y2:
+                topy = y1 - up
+            else:
+                topy = y2 - up
+
+            # adjusting if value is negative
+            if topy < 0:
+                topy = 0
+
+            width = left + right + abs(x1 - x2)
+            height = up + down + abs(y1 - y2)
+
+            if (x2 - x1) == 0:
+                m = None
+                b = None
+            elif (y2 - y1) == 0:
+                m = 0
+                b = 0
+            else:
+                m = ((y2 - y1) * 1.0) / (x2 -x1)
+                b = y1 - (m * x1)
+
+            plates_dict.update(
+                {
+                    camera_id: {
+                        'enabled': data['enabled'],
+                        'outside_area': data['reference_line_outside_area'],
+                        'coordinates': data['reference_line_coordinates'],
+                        'width': data['reference_line_width'],
+                        'color': data['reference_line_color'],
+                        'line_m_b': [m, b],
+                        'area_of_interest': {'type': data['area_of_interest_type'], 'values': [topx, topy, width, height]},
+                        }
+                    }
+                )
+        else:
+            log_error("Parallel area logic not yet defined")
+    elif 'reference_line_coordinates' not in data and 'area_of_interest' in data and data['area_of_interest_type'] in ['fixed']:
+        topx = data['area_of_interest']['topx']
+        topy = data['area_of_interest']['topy']
+        width = data['area_of_interest']['width']
+        height = data['area_of_interest']['height']
+
+        plates_dict.update(
+            {
+                camera_id: {
+                    'enabled': data['enabled'],
+                    'coordinates': None,
+                    'area_of_interest': {'type': data['area_of_interest_type'], 'values': [topx, topy, width, height]},
+                    }
+                }
+            )
+
+    elif 'reference_line_coordinates' in data and 'area_of_interest' not in data:
+        x1 = data['reference_line_coordinates'][0][0]
+        y1 = data['reference_line_coordinates'][0][1]
+        x2 = data['reference_line_coordinates'][1][0]
+        y2 = data['reference_line_coordinates'][1][1]
+
+        if (x2 - x1) == 0:
+            m = None
+            b = None
+        elif (y2 - y1) == 0:
+            m = 0
+            b = 0
+        else:
+            m = ((y2 - y1) * 1.0) / (x2 -x1)
+            b = y1 - (m * x1)
+
+        plates_dict.update(
+                {
+                    camera_id: {
+                        'enabled': data['enabled'],
+                        'outside_area': data['reference_line_outside_area'],
+                        'coordinates': data['reference_line_coordinates'],
+                        'width': data['reference_line_width'],
+                        'color': data['reference_line_color'],
+                        'line_m_b': [m, b],
+                        'area_of_interest': {'type': data['area_of_interest_type'], 'values': None},
+                        }
+                    }
+                )
+    else:
+        log_error("Missing configuration parameters for 'aforo' service")
+
+
 
 
 def set_sources(value):
@@ -189,6 +316,109 @@ def set_number_of_resources(num):
     log_error("'num={}' parameter, most be integer".format(num))
 
 
+def validate_plate_values(data):
+
+    if 'enabled' not in data.keys():
+        log_error('validate_plate_values() - Key element enabled does not exists in the data provided:\n\n {}'.format(data))
+    else:
+        if not isinstance(data['enabled'], str):
+            log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
+
+    # For plates we will use the reference line and then the area of interest if there is one defined
+    if 'reference_line_coordinates' in data.keys() and 'area_of_interest' in data.keys():
+        reference_line_coordinates = data['reference_line_coordinates']
+        reference_line_coordinates = reference_line_coordinates.replace('(', '')
+        reference_line_coordinates = reference_line_coordinates.replace(')', '')
+        reference_line_coordinates = reference_line_coordinates.replace(' ', '')
+        reference_line_coordinates = reference_line_coordinates.split(',')
+        try:
+            reference_line_coordinates = [(int(reference_line_coordinates[0]), int(reference_line_coordinates[1])), (int(reference_line_coordinates[2]), int(reference_line_coordinates[3]))]
+            data.update({'reference_line_coordinates': reference_line_coordinates})
+        except Exception as e:
+            log_error("Exception: Unable to create reference_line_coordinates".format(str(e)))
+
+        if not isinstance(data['reference_line_coordinates'], list):
+            log_error("reference_line_coordinate, most be a list. Undefining variable")
+
+        if len(data['reference_line_coordinates']) != 2:
+            log_error("coordinates, most be a pair of values.")
+
+        for coordinate in data['reference_line_coordinates']:
+            if not isinstance(coordinate[0], int) or not isinstance(coordinate[1], int):
+                log_error("coordinates elements, most be integers")
+
+        if 'reference_line_width' not in data.keys():
+            data.update({'reference_line_width': 2})
+        else:
+            new_value = float(data['reference_line_width'])
+            new_value = int(new_value)
+            data.update({'reference_line_width': new_value})
+
+        if 'reference_line_color' not in data.keys():
+            data.update({'reference_line_color': [1, 1, 1, 1]})
+        else:
+            reference_line_color = reference_line_color.replace('(', '')
+            reference_line_color = reference_line_color.replace(')', '')
+            reference_line_color = reference_line_color.replace(' ', '')
+            reference_line_color = reference_line_color.split(',')
+            try:
+                reference_line_color = [int(reference_line_color[0]), int(reference_line_color[1]), int(reference_line_color[2]), int(reference_line_color[3])]
+                data.update({'reference_line_color': reference_line_color})
+            except Exception as e:
+                log_error("Exception: Unable to create reference_line_color".format(str(e)))
+
+        if not isinstance(data['reference_line_color'], list):
+            log_error("coordinates color elements, most be a list of integers")
+
+        for color in data['reference_line_color']:
+            if not isinstance(color, int) or color < 0 or color > 255:
+                log_error("color values should be integers and within 0-255")
+
+        if 'reference_line_outside_area' not in data.keys():
+            log_error("If reference line is define 'outside_area' must also be defined")
+        else:
+            reference_line_outside_area = float(data['reference_line_outside_area'])
+            reference_line_outside_area = int(reference_line_outside_area)
+            if reference_line_outside_area not in [1, 2]:
+                log_error("outside_area, most be an integer 1 or 2")
+            data.update({'reference_line_outside_area': reference_line_outside_area})
+
+        ####### if area of interest is defined
+        if 'area_of_interest_type' not in data.keys():
+            log_error("Missing 'type' in 'area_of_interest' object")
+
+        if data['area_of_interest_type'] not in ['horizontal', 'parallel', 'fixed']:
+            log_error("'type' object value must be 'horizontal', 'parallel' or 'fixed'")
+
+        UpDownLeftRight = data['area_of_interest'].replace(' ', '')
+        UpDownLeftRight = UpDownLeftRight.split(',')
+        try:
+            data.update({'area_of_interest': {'up': int(UpDownLeftRight[0]), 'down': int(UpDownLeftRight[1]), 'left': int(UpDownLeftRight[2]), 'right': int(UpDownLeftRight[3])} })
+        except Exception as e:
+            log_error("Exception: Unable to create reference_line_color".format(str(e)))
+
+        if data['area_of_interest_type'] == 'horizontal':
+            horizontal_keys = ['up', 'down', 'left', 'right']
+            for param in horizontal_keys:
+                if param not in data['area_of_interest'].keys():
+                    log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
+
+                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
+                    log_error("{} value should be integer and positive".format(params))
+        elif data['area_of_interest_type'] == 'parallel':
+            print('type parallel not defined')
+        elif data['area_of_interest_type'] == 'fixed':
+            inner_keys = ['topx', 'topy', 'height', 'width']
+            for param in inner_keys:
+                if param not in data['area_of_interest'].keys():
+                    log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
+                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
+                    log_error("{} value should be integer and positive".format(params))
+
+    else:
+        log_error("Reference line and Area of interest not defined")
+
+    return True
 
 
 def log_error(msg):
@@ -199,33 +429,79 @@ def log_error(msg):
 
 
 def reading_server_config():
-    from configs.Server_Emulatation_configs import config as scfg
+    scfg = service.get_server_info()
+    scfg = {
+        'CajaLosAndes-ac:17:c8:62:08:5b': 
+            {
+            'video-plateDetection': 
+                {
+                'reference_line_coordinates': '(500, 720), (1100, 720)', 
+                'reference_line_outside_area': '1.0', 
+                'source': 'file:///home/aaeon/hoy_no_circula.mp4',
+                'area_of_interest': '90,90,0,0', 
+                'area_of_interest_type': 'horizontal',
+                'enabled': 'True'
+                },
+            'video-maskDetection': 
+                {
+                'source': 'rtsp://192.168.127.2:9000/live', 
+                'enabled': 'False'
+                }, 
+            'video-socialDistancing': 
+                {
+                'tolerated_distance': '150.0', 
+                'source': 'rtsp://192.168.127.2:9000/live', 
+                'persistence_time': '2.0', 
+                'enabled': 'False'
+                }, 
+            'video-people': 
+                {
+                'reference_line_coordinates': '(500, 720), (1100, 720)', 
+                'MaxAforo': '', 
+                'reference_line_outside_area': '1.0', 
+                'source': 'rtsp://192.168.127.2:9000/live', 
+                'area_of_interest': '', 
+                'enabled': 'False', 
+                'area_of_interest_type': ''
+                }
+            }, 
+        'DTevar-culhuacan-34:56:fe:a3:99:de': 
+            {
+            'video-socialDistancing': 
+                {
+                'tolerated_distance': '100.0', 
+                'source': 'rtsp://192.168.128.3:9000/live', 
+                'persistence_time': '2.0', 
+                'enabled': 'False'
+                }, 
+            'video-people': 
+                {
+                'reference_line_coordinates': '(500, 720), (1100, 720)', 
+                'MaxAforo': '20.0', 
+                'reference_line_outside_area': '1.0', 
+                'source': 'rtsp://192.168.128.3:9000/live', 
+                'area_of_interest': '90,90,0,0', 
+                'enabled': 'False', 
+                'area_of_interest_type': 'horizontal'
+                }
+            }, 
+        'OK': True
+    }
 
-    if not service.set_header(scfg['server']['token_file']):
-        log_error("Unable to set the 'Token' using parameter: {}".format(scfg['server']['token_file']))
+    for camera in scfg.keys():
+        if camera == 'OK':
+            continue
 
-    # setup the services for each camera
-    set_server_url(scfg['server']['url'])
-    global srv_url
-
-    # setup the services for each camera
-    set_number_of_resources(len(scfg['cameras']))
-
-    for camera in scfg['cameras'].keys():
         activate_service = False
         source = None
-        for key in scfg['cameras'][camera].keys():
-            print('eaaaaaa', key)
 
-            if key == 'source':
-                source = scfg['cameras'][camera][key]
-                continue
-            elif key == 'plate_detection' and scfg['cameras'][camera][key]['enabled']:
+        for key in scfg[camera].keys():
+            if key == 'video-plateDetection' and validate_plate_values(scfg[camera][key]) and scfg[camera][key]['enabled']:
+                source = scfg[camera][key]['source']
                 set_plate_ids_dict(camera)
                 service.set_plate_detection_url()
+                set_reference_line_and_area_of_interest(camera, scfg[camera][key])
                 activate_service = True
-            else:
-                continue
 
         if activate_service:
             set_camera(camera)
@@ -257,7 +533,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
     camera_id = get_camera_id(current_pad_index)
 
-    #aforo_info = get_aforo(camera_id) 
+    plates_info = get_plates_info(camera_id) 
+    print('information edgar')
+    print(plates_info)
+    quit()
     #is_aforo_enabled = aforo_info['enabled']
 
     #social_distance_info = get_social_distance(camera_id)
@@ -292,7 +571,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     py_nvosd_text_params.text_bg_clr.alpha = 1.0
 
     plate_ids = get_plate_ids_dict(camera_id)
-    print('................', plate_ids)
     # por que ponerlo en 1 ????
     #frame_number = 1 # to avoid not definition issue
 
@@ -326,6 +604,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             
             obj_counter[obj_meta.class_id] += 1
             
+            # if class is 1 (plate) and only every other frame
             if obj_meta.class_id == 1 and frame_number % 3 == 0:
                 save_image = True
 
@@ -337,9 +616,12 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     items = plate_ids[obj_meta.object_id]['items']
                     counter += 1
 
+                print('X..............', int(obj_meta.rect_params.width + obj_meta.rect_params.left/2))
+                print('Y..............', int(obj_meta.rect_params.height + obj_meta.rect_params.top))
+            
                 # Getting Image data using nvbufsurface
                 # the input should be address of buffer and batch_id
-                n_frame=pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
+                n_frame = pyds.get_nvds_buf_surface(hash(gst_buffer), frame_meta.batch_id)
 
                 # convert python array into numy array format.
                 frame_image = np.array(n_frame,copy=True,order='C')
@@ -353,6 +635,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
                 plate_ids.update({obj_meta.object_id: {'counter': counter, 'items': items}})
                 set_plate_ids_dict(camera_id, plate_ids)
+                for elemento in plate_ids.keys():
+                    if plate_ids[elemento]['counter'] > 1:
+                        print('................',frame_number, elemento, 'photo:', len(plate_ids[elemento]['items']))
                  
             #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Mask={} NoMaks={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_FACE], obj_counter[PGIE_CLASS_ID_PLATES])
 
@@ -559,7 +844,7 @@ def main():
         frame_count["stream_"+str(i)]=0
         saved_count["stream_"+str(i)]=0
 
-        print("Creating source_bin...........", i, " \n ")
+        print("Creating source_bin...........", i, '.-', source, " \n ")
         uri_name = source
 
         if uri_name.find("rtsp://") == 0:
@@ -617,9 +902,6 @@ def main():
     if not filter1:
         sys.stderr.write(" Unable to get the caps filter1 \n")
     filter1.set_property("caps", caps1)
-
-
-
 
     tracker = Gst.ElementFactory.make("nvtracker", "tracker")
     if not tracker:
