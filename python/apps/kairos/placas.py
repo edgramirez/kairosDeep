@@ -325,7 +325,7 @@ def validate_plate_values(data):
             log_error("'aforo_data' parameter, most be True or False, current value: {}".format(data['enabled']))
 
     # For plates we will use the reference line and then the area of interest if there is one defined
-    if 'reference_line_coordinates' in data.keys() and 'area_of_interest' in data.keys():
+    if 'reference_line_coordinates' in data.keys() and 'area_of_interest' in data.keys() and data['reference_line_coordinates'] != '' and data['area_of_interest'] != '':
         reference_line_coordinates = data['reference_line_coordinates']
         reference_line_coordinates = reference_line_coordinates.replace('(', '')
         reference_line_coordinates = reference_line_coordinates.replace(')', '')
