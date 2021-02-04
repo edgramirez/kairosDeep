@@ -411,7 +411,7 @@ def log_error(msg):
 
 
 def reading_server_config():
-    scfg = service.get_server_info()
+    #scfg = service.get_server_info()
     scfg = {
         'CajaLosAndes-ac:17:c8:62:08:5b': 
             {
@@ -516,9 +516,9 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     camera_id = get_camera_id(current_pad_index)
 
     plates_info = get_plates_info(camera_id) 
-    print('information edgar')
-    print(plates_info)
-    quit()
+    #print('information edgar')
+    #print(plates_info)
+    #quit()
     #is_aforo_enabled = aforo_info['enabled']
 
     #social_distance_info = get_social_distance(camera_id)
@@ -527,15 +527,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     #people_counting_info = get_people_counting(camera_id)
     #is_people_counting_enabled = people_counting_info['enabled']
 
-    # Falta el servicio de Plates Detection
-    #
-    #
-
     #print( "entro al  tiler_src_pad_buffer_probe")
     # Todos los servicios requieren impresion de texto solo para Aforo se requiere una linea y un rectangulo
     display_meta.num_labels = 1                            # numero de textos
     py_nvosd_text_params = display_meta.text_params[0]
-
 
     # Setup del label de impresion en pantalla
     py_nvosd_text_params.x_offset = 100
@@ -563,7 +558,6 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
         except StopIteration:
             break
-        #print( "primer ciclo") 
         frame_number = frame_meta.frame_num
         
         l_obj = frame_meta.obj_meta_list
@@ -574,7 +568,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
         #print(num_rects) ID numero de stream
         #ids = set()
   
-        #fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()
+        # fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()
         
         # Ciclo interno donde se evaluan los objetos dentro del frame
         while l_obj is not None: 
@@ -587,7 +581,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             obj_counter[obj_meta.class_id] += 1
             
             # if class is 1 (plate) and only every other frame
-            if obj_meta.class_id == 1 and frame_number % 3 == 0:
+            # TODO hay que utilizar la informacion en plates_info para determinar si esta dentro del area de interes y si esta entrando o saliendo y solo tomar las imagenes de cuando este entrando
+            if obj_meta.class_id == 1 and frame_number % 2 == 0:
                 save_image = True
 
                 if obj_meta.object_id not in plate_ids:
@@ -616,10 +611,16 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 items.append(frame_image)
 
                 plate_ids.update({obj_meta.object_id: {'counter': counter, 'items': items}})
+                #print('edgar...', plate_ids)
                 set_plate_ids_dict(camera_id, plate_ids)
                 for elemento in plate_ids.keys():
-                    if plate_ids[elemento]['counter'] > 1:
-                        print('................',frame_number, elemento, 'photo:', len(plate_ids[elemento]['items']))
+                    #print('11111111111', elemento)
+                    #print('22222222222', type(elemento))
+                    #print('33333333333', plate_ids)
+                    #print('44444444444', plate_ids[elemento])
+                    #print('55555555555', plate_ids[obj_meta.object_id]['counter'])
+                    if plate_ids[obj_meta.object_id]['counter'] > 1:
+                        print('................', frame_number, elemento, 'photo:', len(plate_ids[obj_meta.object_id]['items']))
                  
             #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Mask={} NoMaks={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_FACE], obj_counter[PGIE_CLASS_ID_PLATES])
 
