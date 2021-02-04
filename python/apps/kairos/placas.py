@@ -57,28 +57,12 @@ import services as service
 import datetime
 
 
-#import boto3
-#
-#from PIL import Image, ImageDraw, ExifTags, ImageColor
-
-
-
 frame_count={}
 saved_count={}
-
-#
-#  version mask_detection solo detectara personas mask & nomask
-#  
-#
 
 PGIE_CLASS_ID_FACE = 0
 PGIE_CLASS_ID_PLATES = 1
 
-#PEOPLE_COUNTING_SERVICE = 0
-#AFORO_ENT_SAL_SERVICE = 1
-#SOCIAL_DISTANCE_SERVICE = 2
-
-#
 # Variables adicionales para el manejo de la funcionalidad de Tiler
 # independientemente como venga los parametros del video se ajusta 
 # a los parametros del muxer
@@ -264,8 +248,6 @@ def set_reference_line_and_area_of_interest(camera_id, data):
                 )
     else:
         log_error("Missing configuration parameters for 'aforo' service")
-
-
 
 
 def set_sources(value):
