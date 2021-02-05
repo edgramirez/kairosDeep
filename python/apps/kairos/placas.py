@@ -419,7 +419,7 @@ def reading_server_config():
                 {
                 'reference_line_coordinates': '(500, 720), (1100, 720)', 
                 'reference_line_outside_area': '1.0', 
-                'source': 'file:///home/aaeon/hoy_no_circula.mp4',
+                'source': 'file:///home/aaeon/video2.mp4',
                 'area_of_interest': '90,90,0,0', 
                 'area_of_interest_type': 'horizontal',
                 'enabled': 'True'
@@ -582,8 +582,10 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             
             # if class is 1 (plate) and only every other frame
             # TODO hay que utilizar la informacion en plates_info para determinar si esta dentro del area de interes y si esta entrando o saliendo y solo tomar las imagenes de cuando este entrando
-            if obj_meta.class_id == 1 and frame_number % 2 == 0:
-                save_image = True
+            print(plates_info)
+            #if obj_meta.class_id == 1 and frame_number % 2 == 0:
+            if obj_meta.class_id == 1:
+                #save_image = True
 
                 if obj_meta.object_id not in plate_ids:
                     counter = 1
@@ -621,6 +623,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     #print('55555555555', plate_ids[obj_meta.object_id]['counter'])
                     if plate_ids[obj_meta.object_id]['counter'] > 1:
                         print('................', frame_number, elemento, 'photo:', len(plate_ids[obj_meta.object_id]['items']))
+                        cv2.imwrite(folder_name + "/stream_" + str(frame_meta.pad_index) + "/" + str(service.get_timestamp()) + "_" + str(obj_meta.object_id) + ".jpg", frame_image)
                  
             #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Mask={} NoMaks={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_FACE], obj_counter[PGIE_CLASS_ID_PLATES])
 
@@ -786,6 +789,7 @@ def main():
     global folder_name
     #folder_name=args[-1]
     folder_name = "frames"
+    folder_name = "placas_encontrada"
     if not path.exists(folder_name):
         os.mkdir(folder_name)
     #    sys.stderr.write("The output folder %s already exists. Please remove it first.\n" % folder_name)
