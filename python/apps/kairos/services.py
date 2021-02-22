@@ -39,6 +39,17 @@ last_time_set = set()
 
 ##### GENERIC FUNCTIONS
 
+
+def log_error(msg, quit=True):
+    print("-- PARAMETER ERROR --\n"*5)
+    print(" %s \n" % msg)
+    print("-- PARAMETER ERROR --\n"*5)
+    if quit:
+        quit()
+    else:
+        return False
+
+
 def api_get_number_of_frames_per_second():
     '''
     TODO: function not yet defined
@@ -133,7 +144,7 @@ def get_machine_macaddresses():
             return macaddress_list
 
 
-def get_server_info(abort_if_exception = True):
+def get_server_info(abort_if_exception = True, quit=True):
     global srv_url
 
     url = srv_url + 'tx/device.getConfigByProcessDevice'
@@ -151,7 +162,7 @@ def get_server_info(abort_if_exception = True):
     if response:
         return json.loads(response.text)
     else:
-        return False
+        return log_error("Unable to retrieve the device configuration from the server. Server response".format(response), quit=quit)
 
 
 def send_json(payload, action, url = None, **options):
