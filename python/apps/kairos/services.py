@@ -150,7 +150,7 @@ def get_server_info(abort_if_exception = True, quit=True):
     url = srv_url + 'tx/device.getConfigByProcessDevice'
 
     for machine_id in get_machine_macaddresses():
-        machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+        #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
         data = {"id": machine_id}
         
         if abort_if_exception:
