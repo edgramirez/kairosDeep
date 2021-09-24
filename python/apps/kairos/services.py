@@ -40,11 +40,11 @@ last_time_set = set()
 ##### GENERIC FUNCTIONS
 
 
-def log_error(msg, quit=True):
+def log_error(msg, _quit=True):
     print("-- PARAMETER ERROR --\n"*5)
     print(" %s \n" % msg)
     print("-- PARAMETER ERROR --\n"*5)
-    if quit:
+    if _quit:
         quit()
     else:
         return False
