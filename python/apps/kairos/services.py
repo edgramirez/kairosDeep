@@ -150,7 +150,8 @@ def get_server_info(abort_if_exception = True, _quit = True):
     url = srv_url + 'tx/device.getConfigByProcessDevice'
 
     for machine_id in get_machine_macaddresses():
-        #machine_id = '00:04:4b:eb:f6:dd'  # HARDCODED MACHINE ID
+        # HARDCODED MACHINE ID
+        #machine_id = '00:04:4b:eb:f6:dd'
         data = {"id": machine_id}
         
         if abort_if_exception:
@@ -158,7 +159,6 @@ def get_server_info(abort_if_exception = True, _quit = True):
         else:
             options = {'abort_if_exception': False}
             response = send_json(data, 'POST', url, **options)
-
     if response:
         return json.loads(response.text)
     else:
@@ -168,10 +168,13 @@ def get_server_info(abort_if_exception = True, _quit = True):
 def get_server_info_from_local_file(filename, _quit = True):
     if file_exists(filename):
         with open(filename) as f:
-            content = f.read()
-            return json.loads(re.sub("'", "\"", content))
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+            print(data)
+            return log_error("data unknow error, data is not a dictionary: {}")
     else:
-        return log_error("Unable to reed the device configuration from local file: {}".format(filename), _quit)
+        return log_error("Unable to read the device configuration from local file: {}".format(filename), _quit)
 
 
 def send_json(payload, action, url = None, **options):
