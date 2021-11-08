@@ -223,7 +223,7 @@ def get_social_distance(key_id, key = None):
 def get_aforo(key_id, key = None, second_key = None):
     global aforo_list
 
-    if key_id not in aforo_list.keys():
+    if key_id not in aforo_list:
         return {'enabled': False}
 
     if key is None:
@@ -296,102 +296,105 @@ def validate_keys(service, data, list_of_keys):
     return True
 
 
-def validate_aforo_values(data):
-    if 'reference_line' in data.keys():
-        if not isinstance(data['reference_line'], dict):
+def validate_aforo_values(data, srv_id, camera_id, service_name):
+    if 'reference_line' in data[srv_id][camera_id][service_name].keys():
+        if not isinstance(data[srv_id][camera_id][service_name]['reference_line'], dict):
             service.log_error("reference_line_coordinate, most be a directory. Undefining variable")
 
         try:
             reference_line_coordinates = [
                     (
-                        int(data['reference_line']['coordinates'][0].split(',')[0].replace('(', '').replace(')', '')), 
-                        int(data['reference_line']['coordinates'][0].split(',')[1].replace('(', '').replace(')', ''))
+                        int(data[srv_id][camera_id][service_name]['reference_line']['coordinates'][0].split(',')[0].replace('(', '').replace(')', '')), 
+                        int(data[srv_id][camera_id][service_name]['reference_line']['coordinates'][0].split(',')[1].replace('(', '').replace(')', ''))
                     ), 
                     (
-                        int(data['reference_line']['coordinates'][1].split(',')[0].replace('(', '').replace(')', '')), 
-                        int(data['reference_line']['coordinates'][1].split(',')[1].replace('(', '').replace(')', ''))
+                        int(data[srv_id][camera_id][service_name]['reference_line']['coordinates'][1].split(',')[0].replace('(', '').replace(')', '')), 
+                        int(data[srv_id][camera_id][service_name]['reference_line']['coordinates'][1].split(',')[1].replace('(', '').replace(')', ''))
                     )]
             if len(reference_line_coordinates) != 2:
                 service.log_error("coordinates, most be a pair of values.")
 
-            data['reference_line'].update({'coordinates': reference_line_coordinates})
+            ###########################################
+            data[srv_id][camera_id][service_name]['reference_line'].update({'coordinates': reference_line_coordinates})
         except Exception as e:
             service.log_error("Exception: Unable to create translate config coordinates".format(str(e)))
 
-        if 'reference_line_width' not in data['reference_line'].keys():
+        if 'reference_line_width' not in data[srv_id][camera_id][service_name]['reference_line'].keys():
             service.log_error("Parameter 'reference_line_width' was not defined")
 
-        new_value = float(data['reference_line']['reference_line_width'])
+        new_value = float(data[srv_id][camera_id][service_name]['reference_line']['reference_line_width'])
         new_value = int(new_value)
-        data['reference_line'].update({'reference_line_width': new_value})
+        ###########################################
+        data[srv_id][camera_id][service_name]['reference_line'].update({'reference_line_width': new_value})
 
-        if 'reference_line_color' not in data['reference_line'].keys():
+        if 'reference_line_color' not in data[srv_id][camera_id][service_name]['reference_line'].keys():
             service.log_error("Parameter 'reference_line_color' was not defined")
 
         try:
             reference_line_color = [
-                    int(data['reference_line']['reference_line_color'][0]), 
-                    int(data['reference_line']['reference_line_color'][1]), 
-                    int(data['reference_line']['reference_line_color'][2]), 
-                    int(data['reference_line']['reference_line_color'][3])]
-            data['reference_line'].update({'reference_line_color': reference_line_color})
+                    int(data[srv_id][camera_id][service_name]['reference_line']['reference_line_color'][0]), 
+                    int(data[srv_id][camera_id][service_name]['reference_line']['reference_line_color'][1]), 
+                    int(data[srv_id][camera_id][service_name]['reference_line']['reference_line_color'][2]), 
+                    int(data[srv_id][camera_id][service_name]['reference_line']['reference_line_color'][3])]
+            ###########################################
+            data[srv_id][camera_id][service_name]['reference_line'].update({'reference_line_color': reference_line_color})
 
-            if not isinstance(data['reference_line']['reference_line_color'], list):
+            if not isinstance(data[srv_id][camera_id][service_name]['reference_line']['reference_line_color'], list):
                 service.log_error("coordinates color elements, most be a list of integers")
         except Exception as e:
             service.log_error("Exception: Unable to create reference_line_color".format(str(e)))
 
-        for color in data['reference_line']['reference_line_color']:
+        for color in data[srv_id][camera_id][service_name]['reference_line']['reference_line_color']:
             if not isinstance(color, int) or color < 0 or color > 255:
                 service.log_error("color values should be integers and within 0-255")
 
-        if 'outside_area' not in data['reference_line']:
+        if 'outside_area' not in data[srv_id][camera_id][service_name]['reference_line']:
             service.log_error("If reference line is defined then 'outside_area' must be defined as well")
         else:
-            outside_area = int(data['reference_line']['outside_area'])
+            outside_area = int(data[srv_id][camera_id][service_name]['reference_line']['outside_area'])
             if outside_area not in [1, 2]:
                 service.log_error("outside_area, most be an integer 1 or 2")
-            data['reference_line'].update({'outside_area': outside_area})
-        print(data)
-        quit()
+            ###########################################
+            data[srv_id][camera_id][service_name]['reference_line'].update({'outside_area': outside_area})
 
-    if 'area_of_interest' in data.keys() and data['area_of_interest'] != '':
-        if 'area_of_interest_type' not in data['area_of_interest'].keys():
-            service.log_error("Missing 'area_of_interest_type' in 'area_of_interest' object: {}".format(data))
+    if 'area_of_interest' in data[srv_id][camera_id][service_name].keys() and data[srv_id][camera_id][service_name]['area_of_interest'] != '':
+        if 'area_of_interest_type' not in data[srv_id][camera_id][service_name]['area_of_interest'].keys():
+            service.log_error("Missing 'area_of_interest_type' in 'area_of_interest' object: {}".format(data[srv_id][camera_id][service_name]))
 
-        if data['area_of_interest']['area_of_interest_type'] not in ['horizontal', 'parallel', 'fixed']:
+        if data[srv_id][camera_id][service_name]['area_of_interest']['area_of_interest_type'] not in ['horizontal', 'parallel', 'fixed']:
             service.log_error("'area_of_interest_type' object value must be 'horizontal', 'parallel' or 'fixed'")
 
         try:
-            data['area_of_interest'].update({'up': int(data['area_of_interest']['up'])})
-            data['area_of_interest'].update({'down': int(data['area_of_interest']['down'])}) 
-            data['area_of_interest'].update({'left': int(data['area_of_interest']['left'])}) 
-            data['area_of_interest'].update({'right': int(data['area_of_interest']['right'])})
+            ###########################################
+            data[srv_id][camera_id][service_name]['area_of_interest'].update({'up': int(data[srv_id][camera_id][service_name]['area_of_interest']['up'])})
+            data[srv_id][camera_id][service_name]['area_of_interest'].update({'down': int(data[srv_id][camera_id][service_name]['area_of_interest']['down'])}) 
+            data[srv_id][camera_id][service_name]['area_of_interest'].update({'left': int(data[srv_id][camera_id][service_name]['area_of_interest']['left'])}) 
+            data[srv_id][camera_id][service_name]['area_of_interest'].update({'right': int(data[srv_id][camera_id][service_name]['area_of_interest']['right'])})
         except Exception as e:
             service.log_error("Exception: Unable to get the up, down, left and right values... Original exception: ".format(str(e)))
 
-        if data['area_of_interest']['area_of_interest_type'] == 'horizontal':
+        if data[srv_id][camera_id][service_name]['area_of_interest']['area_of_interest_type'] == 'horizontal':
             horizontal_keys = ['up', 'down', 'left', 'right']
             for param in horizontal_keys:
-                if param not in data['area_of_interest'].keys():
+                if param not in data[srv_id][camera_id][service_name]['area_of_interest']:
                     service.log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
         
-                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
+                if not isinstance(data[srv_id][camera_id][service_name]['area_of_interest'][param], int) or data[srv_id][camera_id][service_name]['area_of_interest'][param] < 0:
                     service.log_error("{} value should be integer and positive".format(params))
-        elif data['area_of_interest_type'] == 'parallel':
-            print('type parallel not defined')
-        elif data['area_of_interest_type'] == 'fixed':
+        elif data[srv_id][camera_id][service_name]['area_of_interest']['area_of_interest_type'] == 'parallel':
+            service.log_error('type parallel not defined')
+        elif data[srv_id][camera_id][service_name]['area_of_interest']['area_of_interest_type'] == 'fixed':
             inner_keys = ['topx', 'topy', 'height', 'width']
             for param in inner_keys:
-                if param not in data['area_of_interest'].keys():
+                if param not in data[srv_id][camera_id][service_name]['area_of_interest'].keys():
                     service.log_error("Missing '{}' parameter in 'area_of_interest' object".format(param))
-                if not isinstance(data['area_of_interest'][param], int) or data['area_of_interest'][param] < 0:
+                if not isinstance(data[srv_id][camera_id][service_name]['area_of_interest'][param], int) or data[srv_id][camera_id][service_name]['area_of_interest'][param] < 0:
                     service.log_error("{} value should be integer and positive".format(params))
         
-    if 'area_of_interest' in data.keys() and 'reference_line' in data.keys() and data['area_of_interest']['area_of_interest_type'] == 'fixed':
+    if 'area_of_interest' in data[srv_id][camera_id][service_name] and 'reference_line' in data[srv_id][camera_id][service_name] and data[srv_id][camera_id][service_name]['area_of_interest']['area_of_interest_type'] == 'fixed':
         service.log_error("Incompatible parameters....  reference_line is not needed when having an area_of_interest type fixed")
 
-    return True
+    return data 
 
 
 def validate_socialdist_values(data):
@@ -435,17 +438,14 @@ def set_reference_line_and_area_of_interest(camera_id, data):
             # generating left_top_xy, width and height
             x1 = data['reference_line']['coordinates'][0][0]
             y1 = data['reference_line']['coordinates'][0][1]
-            print(x1)
+
             x2 = data['reference_line']['coordinates'][1][0]
             y2 = data['reference_line']['coordinates'][1][1]
-            print(y2)
 
             left = data['area_of_interest']['left']
             right = data['area_of_interest']['right']
             up = data['area_of_interest']['up']
             down = data['area_of_interest']['down']
-            print(down, x1, x2, y1, y2)
-            quit()
 
             if x1 < x2:
                 topx = x1 - left
@@ -482,10 +482,10 @@ def set_reference_line_and_area_of_interest(camera_id, data):
                 {
                     camera_id: {
                         'enabled': data['enabled'],
-                        'outside_area': data['outside_area'],
-                        'coordinates': data['reference_line'],
-                        'width': data['reference_line_width'],
-                        'color': data['reference_line_color'],
+                        'outside_area': data['reference_line']['outside_area'],
+                        'coordinates': data['reference_line']['coordinates'],
+                        'width': data['reference_line']['reference_line_width'],
+                        'color': data['reference_line']['reference_line_color'],
                         'line_m_b': [m, b],
                         'area_of_interest': {'type': data['area_of_interest']['area_of_interest_type'], 'values': [topx, topy, width, height]},
                         }
@@ -544,11 +544,10 @@ def set_reference_line_and_area_of_interest(camera_id, data):
 
 def reading_server_config():
     global scfg
-    scfg = service.get_server_info(abort_if_exception = False)
+    #scfg = service.get_server_info(abort_if_exception = False)
 
     #forcing to read from local config file 
     # TESTING CODE to force reading from file
-    scfg = {}
     if not scfg:
         print('reading from file')
         scfg = service.get_server_info_from_local_file("configs/Server_Emulation_configs_to_kairos.py")
@@ -556,48 +555,44 @@ def reading_server_config():
     if "OK" in scfg.keys():
         scfg.pop("OK")
 
-    for camera in scfg.keys():
-        activate_service = False
-        source = None
+    for srv_id in scfg.keys():
+        
+        for camera in scfg[srv_id].keys():
+            source = None
+            activate_service = False
+            for service_name in scfg[srv_id][camera]:
+                if 'enabled' not in scfg[srv_id][camera][service_name]:
+                    continue
+                if scfg[srv_id][camera][service_name]['enabled'] is not True:
+                    continue
 
-        for key in scfg[camera].keys():
-            print('ante...s', key)
-            if key == 'aforo':
-                if 'enabled' not in scfg[camera][key]:
-                    service.log_error('Key element enabled does not exists in the provided data:\n\n {}'.format(scfg[camera][key]))
-                if not isinstance(scfg[camera][key]['enabled'], bool):
-                    service.log_error("'enable' parameter, most be True or False, current value: {}".format(scfg[camera][key]['enabled']))
-
-                if scfg[camera][key]['enabled']:
-                    print(scfg[camera][key], '\n')
-                    print('--------------------------------------')
-                    scfg = validate_aforo_values(scfg[camera][key])
-                    print(scfg)
-                    print('aqui3')
-                    set_reference_line_and_area_of_interest(camera, scfg[camera][key])
+                if service_name == 'aforo' and 'source' in scfg[srv_id][camera][service_name]:
+                    scfg = validate_aforo_values(scfg, srv_id, camera, service_name)
+                    set_reference_line_and_area_of_interest(camera, scfg[srv_id][camera][service_name])
                     service.set_aforo_url()
                     set_initial_last_disappeared(camera)
-                    source = scfg[camera][key]['source']
+                    source = scfg[srv_id][camera][service_name]['source']
                     activate_service = True
+                elif service_name == 'video-socialDistancing' and validate_socialdist_values(scfg[srv_id][camera][service_name]): 
+                    print('aqui2')
+                    set_social_distance(camera, scfg[srv_id][camera][service_name])
+                    service.set_social_distance_url()
+                    source = scfg[srv_id][camera][service_name]['source']
+                    activate_service = True
+                elif service_name == 'people_counting' and validate_people_counting_values(scfg[srv_id][camera][service_name]):
+                    print('aqui1')
+                    set_people_counting(camera, scfg[srv_id][camera][service_name])
+                    service.set_service_people_counting_url()
+                    source = scfg[srv_id][camera][service_name]['source']
+                    activate_service = True
+                else:
+                    continue
 
-            elif key == 'video-socialDistancing' and validate_socialdist_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                print('aqui2')
-                set_social_distance(camera, scfg[camera][key])
-                service.set_social_distance_url()
-                source = scfg[camera][key]['source']
-                activate_service = True
-            elif key == 'people_counting' and validate_people_counting_values(scfg[camera][key]) and scfg[camera][key]['enabled'] == 'True':
-                print('aqui1')
-                set_people_counting(camera, scfg[camera][key])
-                service.set_service_people_counting_url()
-                source = scfg[camera][key]['source']
-                activate_service = True
-            else:
-                continue
+            if activate_service:
+                set_camera(camera)
+                set_sources(source)
 
-        if activate_service:
-            set_camera(camera)
-            set_sources(source)
+    return True
 
 
 def tiler_src_pad_buffer_probe(pad, info, u_data):
