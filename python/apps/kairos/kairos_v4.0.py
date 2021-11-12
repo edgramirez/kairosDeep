@@ -59,12 +59,15 @@ import json
 #  sin embargo la logica del programa permite 
 #  seguir contando otras clases si asi se 
 #  requiriera
-#
+#  
+# 11-nov-2021
+# Esta version solo detectara personas
+# todo lo demás se elimina 
 
-PGIE_CLASS_ID_VEHICLE = 0
-PGIE_CLASS_ID_BICYCLE = 1
+#PGIE_CLASS_ID_VEHICLE = 0
+#PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
-PGIE_CLASS_ID_ROADSIGN = 3
+#PGIE_CLASS_ID_ROADSIGN = 3
 
 #PEOPLE_COUNTING_SERVICE = 0
 #AFORO_ENT_SAL_SERVICE = 1
@@ -599,12 +602,14 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
     obj_counter = {
-            PGIE_CLASS_ID_VEHICLE: 0,
-            PGIE_CLASS_ID_PERSON: 0,
-            PGIE_CLASS_ID_BICYCLE: 0,
-            PGIE_CLASS_ID_ROADSIGN: 0
+            PGIE_CLASS_ID_PERSON: 0
             }
 
+    #PGIE_CLASS_ID_VEHICLE: 0,
+    #PGIE_CLASS_ID_BICYCLE: 0,
+    #PGIE_CLASS_ID_ROADSIGN: 0
+
+    
     frame_number = 0
     num_rects = 0                      # numero de objetos en el frame
     gst_buffer = info.get_buffer()
@@ -639,7 +644,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     py_nvosd_text_params.x_offset = 100
     py_nvosd_text_params.y_offset = 120
     py_nvosd_text_params.font_params.font_name = "Arial"
-    py_nvosd_text_params.font_params.font_size = 10
+    py_nvosd_text_params.font_params.font_size = 20
     py_nvosd_text_params.font_params.font_color.red = 1.0
     py_nvosd_text_params.font_params.font_color.green = 1.0
     py_nvosd_text_params.font_params.font_color.blue = 1.0
@@ -738,21 +743,31 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             except StopIteration:
                 break           
 
-            #x = obj_meta.rect_params.width
-            #y = obj_meta.rect_params.height
+            x = obj_meta.rect_params.width
+            y = obj_meta.rect_params.height
+            t = obj_meta.rect_params.top
+            l = obj_meta.rect_params.left
+         
+            #print(" width-x height -y Top  LEft ", x, "  ",y,"  ",t,"   ",l)
             obj_counter[obj_meta.class_id] += 1
             ids.append(obj_meta.object_id)
-            x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2)
+            #x = int(obj_meta.rect_params.width + obj_meta.rect_params.left/2)
+            x = int(obj_meta.rect_params.left + obj_meta.rect_params.width/2)
+            #print(x)
 
             if is_social_distance_enabled:
                 # centroide al pie
-                y = int(obj_meta.rect_params.height + obj_meta.rect_params.top)
+                #y = int(obj_meta.rect_params.height + obj_meta.rect_params.top)
+                y = int(obj_meta.rect_params.top + obj_meta.rect_params.height) 
+                #print("x,y",x,"  ",y)
                 ids_and_boxes.update({obj_meta.object_id: (x, y)})
 
             # Service Aforo (in and out)
             if is_aforo_enabled:
                 # centroide al hombligo
-                y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) 
+                #y = int(obj_meta.rect_params.height + obj_meta.rect_params.top/2) 
+                y = int(obj_meta.rect_params.top + obj_meta.rect_params.height/2) 
+                #print("x,y",x,"  ",y) 
                 boxes.append((x, y))
 
                 if aforo_info['area_of_interest']['values']:
@@ -936,8 +951,8 @@ def main():
     # Se crea elemento que acepta todo tipo de video o RTSP
     i = 0
     for source in get_sources():
-        print("Creating source_bin...........", i, " \n ")
         uri_name = source
+        print("Creating source_bin...........", i, "with uri_name: ", uri_name, " \n ")
 
         if uri_name.find("rtsp://") == 0:
             print('is_alive_TRUE')
@@ -1005,6 +1020,14 @@ def main():
     #
     #   La misma version 2.1 debe permitir opcionalmente mandar a pantalla o no
     #
+    # 11-nov-2021
+    # si estamos en DEMO mode se manda a pantalla, todo a través del elemento sink
+    # 
+    #demo_status = com.FACE_RECOGNITION_DEMO
+    #if demo_status == "True":
+    #    sink = Gst.ElementFactory.make("nveglglessink", "nvvideo-renderer")
+    #else:
+    #    sink = Gst.ElementFactory.make("fakesink", "fakesink")
 
     print("Creating tiler \n ")
     tiler = Gst.ElementFactory.make("nvmultistreamtiler", "nvtiler")
@@ -1038,10 +1061,10 @@ def main():
         
     # Tamano del streammux, si el video viene a 720, se ajusta automaticamente
 
-    streammux.set_property('width', 1920)
-    streammux.set_property('height', 1080)
+    streammux.set_property('width', MUXER_OUTPUT_WIDTH)
+    streammux.set_property('height', MUXER_OUTPUT_HEIGHT)
     streammux.set_property('batch-size', 1)
-    streammux.set_property('batched-push-timeout', 4000000)
+    streammux.set_property('batched-push-timeout', MUXER_BATCH_TIMEOUT_USEC)
 
     #
     # Configuracion de modelo
