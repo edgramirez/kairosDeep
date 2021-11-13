@@ -10,9 +10,12 @@ import fcntl
 import socket
 import struct
 
+import mycommon as com
+
 from math import sqrt
 from random import seed, randint
 from datetime import datetime
+
 
 
 global first_time_set
@@ -171,10 +174,62 @@ def get_server_info_from_local_file(filename, _quit = True):
             data = json.load(f)
             if isinstance(data, dict):
                 return data
-            print(data)
             return log_error("data unknow error, data is not a dictionary: {}")
     else:
         return log_error("Unable to read the device configuration from local file: {}".format(filename), _quit)
+
+
+def parse_parameters_and_values_from_config(config_data):
+    # filter config and get only data for this server using the mac to match
+    scfg = get_config_filtered_by_local_mac(config_data)
+
+    # filter config and get only data of active services
+    scfg = get_config_filtered_by_active_service(scfg)
+    return scfg
+
+
+def get_config_filtered_by_local_mac(config_data):
+    '''
+    By now we only support one nano server and one interface
+    but it can be a big server with multiple interfaces so I
+    leave the logic with to handle this option
+    '''
+    services_data = {}
+    for key in config_data.keys():
+        if mac_address_in_config(key):
+            services_data[key] = config_data[key]
+    if services_data:
+        return services_data
+
+    com.log_error("The provided configuration does not match any of server interfaces mac address")
+
+
+def get_config_filtered_by_active_service(config_data):
+    if not isinstance(config_data, dict):
+        com.log_error("Configuration error - Config data must be a dictionary - type: {} / content: {}".format(type(config_data), config_data))
+    active_services = {}
+
+    for local_server_mac in config_data.keys():
+        # This variable will be incremented if the service name key already exists
+        for camera_mac in config_data[local_server_mac]:
+            for service in config_data[local_server_mac][camera_mac]:
+                if 'enabled' in config_data[local_server_mac][camera_mac][service] and config_data[local_server_mac][camera_mac][service]['enabled'] is True:
+                    # Create new key only for the active service
+                    new_key_name = 'srv_' + local_server_mac + "_camera_" + camera_mac + '_' + service
+                    active_services[new_key_name] = {service: config_data[local_server_mac][camera_mac][service]}
+
+    if len(active_services) < 1:
+        com.log_error("\nConfiguration does not contain any active service for this server: \n\n{}".format(config_data))
+
+    return active_services
+
+
+
+def mac_address_in_config(mac_config):
+    for machine_id in com.get_machine_macaddresses():
+        if mac_config == machine_id:
+            return True
+    return False
 
 
 def send_json(payload, action, url = None, **options):
