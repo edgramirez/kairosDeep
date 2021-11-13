@@ -1,24 +1,24 @@
 {
-    "DTevar-culhuacan-34:56:fe:a3:99:de":
+    "9c:7b:ef:2a:b6:07":
     {
         "camera_mac_1": 
         {
 	        "aforo": 
 	        {
 	            "enabled": true,
-	            "source": "file:///tmp/shopping_mall.mkv",
+                    "source": "file:///tmp/shopping_mall.mkv",
 	            "reference_line": 
 	            {
-	                "coordinates": ["(100, 320)", "(500, 320)"],
+	                "coordinates": ["(130, 270)", "(550, 200)"],
 	                "reference_line_width": 5,
 	                "reference_line_color": ["1", "1", "1", "1"],
-	                "outside_area": 1
+	                "outside_area": 2
 	            },
 	            "area_of_interest": 
 	            {
 	                "area_of_interest_type": "horizontal",
-	                "up": 90,
-	                "down": 90,
+	                "up": 100,
+	                "down": 550,
 	                "left": 0,
 	                "right": 0
 	            }
@@ -34,6 +34,7 @@
         {
 	        "people_counting": 
 	        {
+                    "source": "rtsp://192.168.128.3:9000/live",
 	            "enabled": false
 	        }
         },
@@ -41,6 +42,7 @@
         {
 	        "mask_detection": 
 	        {
+                    "source": "rtsp://192.168.128.3:9000/live",
 	            "enabled": false
 	        }
         }
