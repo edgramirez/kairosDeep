@@ -66,7 +66,8 @@ import json
 
 #PGIE_CLASS_ID_VEHICLE = 0
 #PGIE_CLASS_ID_BICYCLE = 1
-PGIE_CLASS_ID_PERSON = 2
+PGIE_CLASS_ID_PERSON = 0                    # si se ocupa Peoplenet la clase es 0 personas, bolsas 1 y rostros 2
+#PGIE_CLASS_ID_PERSON = 2
 #PGIE_CLASS_ID_ROADSIGN = 3
 
 #PEOPLE_COUNTING_SERVICE = 0
@@ -334,7 +335,7 @@ def validate_aforo_values(data, srv_id, service_name):
             service.log_error("Parameter 'reference_line_color' was not defined")
 
         try:
-            reference_line_color = [
+            reference_line_color= [                                                                   # me borre la variable asumo fue reference_line_coordinates
                     int(data[srv_id][service_name]['reference_line']['reference_line_color'][0]), 
                     int(data[srv_id][service_name]['reference_line']['reference_line_color'][1]), 
                     int(data[srv_id][service_name]['reference_line']['reference_line_color'][2]), 
@@ -553,7 +554,6 @@ def reading_server_config():
     #forcing to read from local config file 
     # TESTING CODE to force reading from file
     if not scfg:
-        print('reading from file')
         scfg = service.get_server_info_from_local_file("configs/Server_Emulation_configs_to_kairos.py")
 
     scfg = service.parse_parameters_and_values_from_config(scfg)
@@ -564,14 +564,6 @@ def reading_server_config():
     for srv_camera_service_id in scfg.keys():
         for service_name in scfg[srv_camera_service_id]:
 
-            # double checking services are active and point to a video or streaming
-            if 'enabled' not in scfg[srv_camera_service_id][service_name]:
-                service.log_error("Service must be enabled")
-            if scfg[srv_camera_service_id][service_name]['enabled'] is not True:
-                service.log_error("enable value must be True or False")
-            if 'source' not in scfg[srv_camera_service_id][service_name]:
-                service.log_error("Service {} must have a source (video or live streaming)".format(service_name))
-
             if service_name == 'aforo':
                 scfg = validate_aforo_values(scfg, srv_camera_service_id, service_name)
                 set_reference_line_and_area_of_interest(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
@@ -581,14 +573,12 @@ def reading_server_config():
                 activate_service = True
             elif service_name == 'video-socialDistancing':
                 scfg = validate_socialdist_values(scfg[srv_camera_service_id][service_name])
-                print('aqui2')
                 set_social_distance(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
                 service.set_social_distance_url()
                 source = scfg[srv_camera_service_id][service_name]['source']
                 activate_service = True
             elif service_name == 'people_counting':
                 scfg = validate_people_counting_values(scfg[srv_camera_service_id][service_name])
-                print('aqui1')
                 set_people_counting(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
                 service.set_service_people_counting_url()
                 source = scfg[srv_camera_service_id][service_name]['source']
@@ -646,8 +636,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     py_nvosd_text_params = display_meta.text_params[0]
 
     # Setup del label de impresion en pantalla
-    py_nvosd_text_params.x_offset = 100
-    py_nvosd_text_params.y_offset = 120
+    py_nvosd_text_params.x_offset = 1200
+    py_nvosd_text_params.y_offset = 100
     py_nvosd_text_params.font_params.font_name = "Arial"
     py_nvosd_text_params.font_params.font_size = 20
     py_nvosd_text_params.font_params.font_color.red = 1.0
@@ -806,7 +796,8 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         if is_aforo_enabled:
             entrada, salida = get_entrada_salida(camera_id)
-            py_nvosd_text_params.display_text = "AFORO Source ID={} Source={} Total persons={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
+            py_nvosd_text_params.display_text = "AFORO Total persons={} Entradas={} Salidas={}".format(obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
+            #py_nvosd_text_params.display_text = "AFORO Source ID={} Source={} Total persons={} Entradas={} Salidas={}".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON], entrada, salida)
 
             '''
             Este bloque limpia los dictionarios initial y last, recolectando los ID que 
@@ -916,7 +907,7 @@ def create_source_bin(index, uri):
 
 def main():
     # Check input arguments
-    # Permite introducir un numero x de fuentes, en nuestro caso streamings delas camaras Meraki        
+    # Lee y carga la configuracion, ya sea desde el servidor o desde un arvhivo de texto
     reading_server_config()    
 
     number_sources = len(get_sources()) 
@@ -1076,13 +1067,13 @@ def main():
     # dstest2_pgie_config contiene modelo estandar, para  yoloV3, yoloV3_tiny y fasterRCNN
     #
 
-    pgie.set_property('config-file-path', CURRENT_DIR + "/configs/dstest2_pgie_config.txt")
+    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/dstest2_pgie_config.txt")
     #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_nano.txt") 
     #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/deepstream_app_source1_video_masknet_gpu.txt")
     #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3.txt")
-    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/kairos_peoplenet_pgie_config.txt")
-    # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3_tiny.txt")
-    # pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_fasterRCNN.txt")
+    pgie.set_property('config-file-path', CURRENT_DIR + "/configs/kairos_peoplenet_pgie_config.txt")
+    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_yoloV3_tiny.txt")
+    #pgie.set_property('config-file-path', CURRENT_DIR + "/configs/config_infer_primary_fasterRCNN.txt")
     # Falta añadir la ruta completa del archivo de configuracion
     
     pgie_batch_size = pgie.get_property("batch-size")
