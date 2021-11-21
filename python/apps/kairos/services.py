@@ -181,11 +181,10 @@ def get_server_info_from_local_file(filename, _quit = True):
 
 def parse_parameters_and_values_from_config(config_data):
     # filter config and get only data for this server using the mac to match
-    scfg = get_config_filtered_by_local_mac(config_data)
+    config_data = get_config_filtered_by_local_mac(config_data)
 
     # filter config and get only data of active services
-    scfg = get_config_filtered_by_active_service(scfg)
-    return scfg
+    return get_config_filtered_by_active_service(config_data)
 
 
 def get_config_filtered_by_local_mac(config_data):
@@ -201,28 +200,33 @@ def get_config_filtered_by_local_mac(config_data):
     if services_data:
         return services_data
 
-    com.log_error("The provided configuration does not match any of server interfaces mac address")
+    log_error("The provided configuration does not match any of server interfaces mac address")
 
 
 def get_config_filtered_by_active_service(config_data):
     if not isinstance(config_data, dict):
-        com.log_error("Configuration error - Config data must be a dictionary - type: {} / content: {}".format(type(config_data), config_data))
+        log_error("Configuration error - Config data must be a dictionary - type: {} / content: {}".format(type(config_data), config_data))
     active_services = {}
 
-    for local_server_mac in config_data.keys():
-        # This variable will be incremented if the service name key already exists
-        for camera_mac in config_data[local_server_mac]:
-            for service in config_data[local_server_mac][camera_mac]:
-                if 'enabled' in config_data[local_server_mac][camera_mac][service] and config_data[local_server_mac][camera_mac][service]['enabled'] is True:
-                    # Create new key only for the active service
-                    new_key_name = 'srv_' + local_server_mac + "_camera_" + camera_mac + '_' + service
-                    active_services[new_key_name] = {service: config_data[local_server_mac][camera_mac][service]}
+    # at this point there should be only one server mac but we still loop in case we have many multiple network interfaces 
+    for server_mac in config_data.keys():
+        #  we loop over all the different cameras attach to this server
+        for camera_mac in config_data[server_mac]:
+            # we loop over all the services assigned to the camera
+            for service in config_data[server_mac][camera_mac]:
+                # if the service is enable we add it to the active services
+                if 'enabled' in config_data[server_mac][camera_mac][service] and config_data[server_mac][camera_mac][service]['enabled'] is True:
+                    if 'source' not in config_data[server_mac][camera_mac][service]:
+                        log_error("Service {} must have a source (video or live streaming)".format(service))
+
+                    # Create new key only for each of the active services
+                    new_key_name = 'srv_' + server_mac + "_camera_" + camera_mac + '_' + service
+                    active_services[new_key_name] = {service: config_data[server_mac][camera_mac][service]}
 
     if len(active_services) < 1:
         com.log_error("\nConfiguration does not contain any active service for this server: \n\n{}".format(config_data))
 
     return active_services
-
 
 
 def mac_address_in_config(mac_config):
