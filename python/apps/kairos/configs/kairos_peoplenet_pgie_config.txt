@@ -64,11 +64,13 @@ net-scale-factor=0.0039215697906911373
 #proto-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/resnet10.prototxt
 #labelfile-path=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/labels.txt
 #int8-calib-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/Primary_Detector/cal_trt.bin
+
 # Codifgo para uso del modelo peoplenet
 tlt-model-key=tlt_encode
-tlt-encoded-model=/opt/nvidia/deepstream/deepstream-5.0/samples/models/tlt_pretrained_models/peoplenet/resnet34_peoplenet_pruned.etlt
-labelfile-path=labels_peoplenet.txt
-model-engine-file=/opt/nvidia/deepstream/deepstream-5.0/samples/models/tlt_pretrained_models/peoplenet/resnet34_peoplenet_pruned.etlt_b1_gpu0_fp16.engine
+#tlt-encoded-model=/opt/nvidia/deepstream/deepstream-5.1/samples/models/tlt_pretrained_models/peoplenet/resnet34_peoplenet_pruned.etlt
+tlt-encoded-model=/home/mit-mexico/github/kairosDeep/python/apps/kairos/models/resnet34_peoplenet_pruned.etlt
+labelfile-path=/home/mit-mexico/github/kairosDeep/python/apps/kairos/models/labels.txt
+#model-engine-file=/opt/nvidia/deepstream/deepstream-5.1/samples/models/tlt_pretrained_models/peoplenet/resnet34_peoplenet_pruned.etlt_b1_gpu0_fp16.engine
 
 infer-dims=3;544;960
 uff-input-blob-name=input_1
@@ -86,13 +88,14 @@ model-color-format=0
 # La primera clase es personas en el modelo de peoplenet
 num-detected-classes=1
 
-#operate-on-class-ids=2
-# Quitamos las clases de bolsas y rostros
+# Quitamos las clases de bolsas y rostros, la clase persona es 0
 filter-out-class-ids=1;2
 cluster-mode=1
 interval=0
 gie-unique-id=1
-output-blob-names=conv2d_bbox;conv2d_cov/Sigmoid
+# 11-nov-2021
+#output-blob-names=conv2d_bbox;conv2d_cov/Sigmoid
+output-blob-names=output_bbox/BiasAdd;output_cov/Sigmoid
 
 # 
 workspace-size=228
@@ -104,8 +107,8 @@ minBoxes=1
 group-threshold=1
 
 #detected-max-w=160
-#detect-min-w=80
-#detected-min-h=100
+detect-min-w=80
+detected-min-h=100
 #detected-max-h=400
 
 

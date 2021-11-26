@@ -90,5 +90,5 @@ pre-cluster-threshold=0.2
 eps=0.2
 group-threshold=1
 detected-max-w=240
-detected-max-h=550
+detected-max-h=950
 detected-min-h=185
