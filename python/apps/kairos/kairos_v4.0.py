@@ -105,15 +105,15 @@ global social_distance_list
 global people_distance_list
 global people_counting_counters
 global camera_list
-global source_list
 global token_file
 global entradas_salidas
 global initial_last_disappeared
 global social_distance_ids
 global scfg
+global sources
+global call_ordered_sources
 
 initial_last_disappeared = {}
-source_list = []
 aforo_list = {}
 people_distance_list = {}
 people_counting_counters = {}
@@ -122,6 +122,8 @@ social_distance_list = {}
 entradas_salidas = {}
 social_distance_ids = {}
 scfg = {}
+sources = {}
+call_ordered_sources = []
 
 
 def set_dashboard_server():
@@ -256,16 +258,18 @@ def get_aforo(key_id, key = None, second_key = None):
             return aforo_list[key_id][key][second_key]
 
 
-def set_sources(value):
-    global source_list
+def set_sources(srv_camera_service_id, source_value):
+    global sources
 
-    if value not in source_list and value:
-        source_list.append(value)
+    if srv_camera_service_id not in sources:
+        sources.update({srv_camera_service_id: source_value})
+    else:
+        source[srv_camera_service_id] = source_value
 
 
 def get_sources():
-    global source_list
-    return source_list
+    global sources
+    return sources
 
 
 def set_camera(value):
@@ -275,9 +279,9 @@ def set_camera(value):
         camera_list.append(value)
 
 
-def get_camera_id(key_id):
-    global camera_list
-    return camera_list[key_id]
+def get_camera_id(index):
+    global call_ordered_sources
+    return call_ordered_sources[index]
 
 
 def set_token(token_file_name):
@@ -579,6 +583,7 @@ def reading_server_config():
                 set_aforo_url(server_url)
                 set_initial_last_disappeared(srv_camera_service_id)
                 source = scfg[srv_camera_service_id][service_name]['source']
+                set_sources(srv_camera_service_id, source)
                 activate_service = True
             elif service_name == 'video-socialDistancing':
                 scfg = validate_socialdist_values(scfg[srv_camera_service_id][service_name])
@@ -597,7 +602,6 @@ def reading_server_config():
 
         if activate_service:
             set_camera(srv_camera_service_id)
-            set_sources(source)
 
     return True
 
@@ -920,7 +924,8 @@ def main():
     set_dashboard_server()
     reading_server_config()    
 
-    number_sources = len(get_sources()) 
+    sources = get_sources()
+    number_sources = len(sources)
 
     if number_sources < 1:
         service.log_error("No source to analyze or not service associated to the source. check configuration file")
@@ -956,7 +961,11 @@ def main():
     
     # Se crea elemento que acepta todo tipo de video o RTSP
     i = 0
-    for source in get_sources():
+    global call_ordered_sources
+    for key in sources.keys():
+        source = sources[key]
+        call_ordered_sources.append(key)
+
         uri_name = source
         print("Creating source_bin...........", i, "with uri_name: ", uri_name, " \n ")
 
