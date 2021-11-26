@@ -27,13 +27,10 @@ global nfps
 global people_counting_enabled
 global aforo_enabled
 global social_distance_enabled
-global aforo_url
 global social_distance_url
 global people_counting_url
 global plate_detection_url
-global srv_url
 
-srv_url = 'https://mit.kairosconnect.app/'
 header = None
 
 first_time_set = set()
@@ -147,10 +144,8 @@ def get_machine_macaddresses():
             return macaddress_list
 
 
-def get_server_info(abort_if_exception = True, _quit = True):
-    global srv_url
-
-    url = srv_url + 'tx/device.getConfigByProcessDevice'
+def get_server_info(server_url, abort_if_exception = True, _quit = True):
+    url = server_url + 'tx/device.getConfigByProcessDevice'
 
     for machine_id in get_machine_macaddresses():
         # HARDCODED MACHINE ID
@@ -338,9 +333,9 @@ def is_point_insde_polygon(x, y, polygon_length, polygon):
 
 ##### PEOPLE COUNTING
 
-def set_service_people_counting_url():
-    global people_counting_url, srv_url
-    people_counting_url = srv_url + 'SERVICE_NOT_DEFINED_'
+def set_service_people_counting_url(server_url):
+    global people_counting_url
+    people_counting_url = server_url + 'SERVICE_NOT_DEFINED_'
 
 
 def people_counting(camera_id, total_objects):
@@ -364,12 +359,12 @@ def people_counting(camera_id, total_objects):
 
 ##### AFORO
 
-def set_aforo_url():
-    global aforo_url, srv_url
-    aforo_url = srv_url + 'tx/video-people.endpoint'
+#def set_aforo_url():
+#    global aforo_url, srv_url
+#aforo_url = srv_url + 'tx/video-people.endpoint'
 
 
-def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
+def aforo(aforo_url, box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -467,8 +462,8 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
 
 ##### SOCIAL DISTANCE
 
-def set_social_distance_url():
-    global social_distance_url, srv_url
+def set_social_distance_url(server_url):
+    global social_distance_url
     social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
 
 
@@ -598,9 +593,9 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
 
 #### MASK DETECTION
 
-def set_mask_detection_url():
-    global mask_detection_url, srv_url
-    mask_detection_url = srv_url + 'tx/video-maskDetection.endpoint'
+def set_mask_detection_url(server_url):
+    global mask_detection_url
+    mask_detection_url = server_url + 'tx/video-maskDetection.endpoint'
 
 
 def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
@@ -621,8 +616,8 @@ def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
 
 #### PLATE DETECTION
 
-def set_plate_detection_url():
-    global plate_detection_url, srv_url
-    plate_detection_url = srv_url + 'TO_BE_SETUP______tx/video-plateDetection.endpoint'
+def set_plate_detection_url(server_url):
+    global plate_detection_url
+    plate_detection_url = server_url + 'TO_BE_SETUP______tx/video-plateDetection.endpoint'
 
 
