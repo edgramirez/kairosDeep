@@ -15,7 +15,7 @@
         }, 
         "video-people": 
         {
-            "reference_line_coordinates": "(500, 720), (1100, 720)", 
+            "reference_line_coordinates": "(520, 700), (1120, 700)", 
             "MaxAforo": "", 
             "reference_line_outside_area": "1.0", 
             "source": "rtsp://192.168.127.2:9000/live", 
