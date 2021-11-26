@@ -96,6 +96,10 @@ CURRENT_DIR = os.getcwd()
 # Matriz de frames per second, Se utiliza en tiler
 fps_streams = {}
 
+global DASHBOARD_SERVER
+global aforo_url
+
+
 global aforo_list
 global social_distance_list
 global people_distance_list
@@ -118,6 +122,19 @@ social_distance_list = {}
 entradas_salidas = {}
 social_distance_ids = {}
 scfg = {}
+
+
+def set_dashboard_server():
+    global DASHBOARD_SERVER
+    try:
+        DASHBOARD_SERVER = os.environ['DASHBOARD_SERVER']
+    except KeyError:
+        service.log_error('\nUnable to read value of environment variable "DASHBOARD_SERVER"  -- Set the variable in $HOME/.bashrc')
+
+
+def get_dashboard_server():
+    global DASHBOARD_SERVER
+    return DASHBOARD_SERVER
 
 
 def set_initial_last_disappeared(key_id):
@@ -301,68 +318,48 @@ def validate_keys(service, data, list_of_keys):
 
 
 def validate_aforo_values(data, srv_id, service_name):
-    if 'reference_line' in data[srv_id][service_name].keys():
-        if not isinstance(data[srv_id][service_name]['reference_line'], dict):
-            service.log_error("reference_line_coordinate, most be a directory. Undefining variable")
 
-        try:
-            reference_line_coordinates = [
-                    (
-                        int(data[srv_id][service_name]['reference_line']['coordinates'][0].split(',')[0].replace('(', '').replace(')', '')), 
-                        int(data[srv_id][service_name]['reference_line']['coordinates'][0].split(',')[1].replace('(', '').replace(')', ''))
-                    ), 
-                    (
-                        int(data[srv_id][service_name]['reference_line']['coordinates'][1].split(',')[0].replace('(', '').replace(')', '')), 
-                        int(data[srv_id][service_name]['reference_line']['coordinates'][1].split(',')[1].replace('(', '').replace(')', ''))
-                    )]
-            if len(reference_line_coordinates) != 2:
-                service.log_error("coordinates, most be a pair of values.")
+    # reference line and all its parameters are obligatory for aforo service
+    if 'reference_line' not in data[srv_id][service_name]:
+        service.log_error("Missing parameter 'reference_line' for service Aforo")
 
-            ###########################################
-            data[srv_id][service_name]['reference_line'].update({'coordinates': reference_line_coordinates})
-        except Exception as e:
-            service.log_error("Exception: Unable to create translate config coordinates".format(str(e)))
+    if not isinstance(data[srv_id][service_name]['reference_line'], dict):
+        service.log_error("reference_line_coordinate, most be a directory")
 
-        if 'reference_line_width' not in data[srv_id][service_name]['reference_line'].keys():
-            service.log_error("Parameter 'reference_line_width' was not defined")
+    if 'reference_line_width' not in data[srv_id][service_name]['reference_line']:
+        service.log_error("Parameter 'reference_line_width' was not defined")
 
-        new_value = float(data[srv_id][service_name]['reference_line']['reference_line_width'])
-        new_value = int(new_value)
-        ###########################################
-        data[srv_id][service_name]['reference_line'].update({'reference_line_width': new_value})
+    if 'reference_line_color' not in data[srv_id][service_name]['reference_line']:
+        service.log_error("Parameter 'reference_line_color' was not defined")
 
-        if 'reference_line_color' not in data[srv_id][service_name]['reference_line'].keys():
-            service.log_error("Parameter 'reference_line_color' was not defined")
+    if 'outside_area' not in data[srv_id][service_name]['reference_line']:
+        service.log_error("If reference line is defined then 'outside_area' must be defined as well")
 
-        try:
-            reference_line_color= [                                                                   # me borre la variable asumo fue reference_line_coordinates
-                    int(data[srv_id][service_name]['reference_line']['reference_line_color'][0]), 
-                    int(data[srv_id][service_name]['reference_line']['reference_line_color'][1]), 
-                    int(data[srv_id][service_name]['reference_line']['reference_line_color'][2]), 
-                    int(data[srv_id][service_name]['reference_line']['reference_line_color'][3])]
-            ###########################################
-            data[srv_id][service_name]['reference_line'].update({'reference_line_color': reference_line_color})
+    #### "reference_line adjusted" values
+    reference_line_coordinates = []
+    for item in data[srv_id][service_name]['reference_line']['coordinates']:
+        reference_line_coordinates.append((int(item.split(',')[0].replace("'", '').replace('(', '')), int(item.split(',')[1].replace("'", '').replace(')', '').replace(' ', ''))))
+    data[srv_id][service_name]['reference_line'].update({'coordinates': reference_line_coordinates})
 
-            if not isinstance(data[srv_id][service_name]['reference_line']['reference_line_color'], list):
-                service.log_error("coordinates color elements, most be a list of integers")
-        except Exception as e:
-            service.log_error("Exception: Unable to create reference_line_color".format(str(e)))
+    new_value = float(data[srv_id][service_name]['reference_line']['reference_line_width'])
+    data[srv_id][service_name]['reference_line'].update({'reference_line_width': int(new_value)})
 
-        for color in data[srv_id][service_name]['reference_line']['reference_line_color']:
-            if not isinstance(color, int) or color < 0 or color > 255:
-                service.log_error("color values should be integers and within 0-255")
+    reference_line_color = []
+    for color in data[srv_id][service_name]['reference_line']['reference_line_color']:
+        color_int = int(color)
+        if color_int < 0 or color_int > 255:
+            service.log_error("color values should be integers and within 0-255")
+        reference_line_color.append(color_int)
+    data[srv_id][service_name]['reference_line'].update({'reference_line_color': [reference_line_color[0], reference_line_color[1], reference_line_color[2], reference_line_color[3]]})
 
-        if 'outside_area' not in data[srv_id][service_name]['reference_line']:
-            service.log_error("If reference line is defined then 'outside_area' must be defined as well")
-        else:
-            outside_area = int(data[srv_id][service_name]['reference_line']['outside_area'])
-            if outside_area not in [1, 2]:
-                service.log_error("outside_area, most be an integer 1 or 2")
-            ###########################################
-            data[srv_id][service_name]['reference_line'].update({'outside_area': outside_area})
+    outside_area = int(data[srv_id][service_name]['reference_line']['outside_area'])
+    if int(data[srv_id][service_name]['reference_line']['outside_area']) not in [1, 2]:
+        service.log_error("outside_area, most be an integer 1 or 2")
+    data[srv_id][service_name]['reference_line'].update({'outside_area': outside_area})
+    ###################################
 
     if 'area_of_interest' in data[srv_id][service_name].keys() and data[srv_id][service_name]['area_of_interest'] != '':
-        if 'area_of_interest_type' not in data[srv_id][service_name]['area_of_interest'].keys():
+        if 'area_of_interest_type' not in data[srv_id][service_name]['area_of_interest']:
             service.log_error("Missing 'area_of_interest_type' in 'area_of_interest' object: {}".format(data[srv_id][service_name]))
 
         if data[srv_id][service_name]['area_of_interest']['area_of_interest_type'] not in ['horizontal', 'parallel', 'fixed']:
@@ -546,10 +543,22 @@ def set_reference_line_and_area_of_interest(srv_camera_service_id, data):
         service.log_error("Missing configuration parameters for 'aforo' service")
 
 
+def set_aforo_url(server_url):
+    global aforo_url
+    aforo_url = server_url + 'tx/video-people.endpoint'
+    return aforo_url
+
+
+def get_aforo_url():
+    global aforo_url
+    return afor_url
+
+
 def reading_server_config():
     global scfg
     # USANDO CONFIGURACION LOCAL PARA PRUEBAS - SIN SERVIDOR DE DASHBOARD
-    #scfg = service.get_server_info(abort_if_exception = False)
+    server_url = get_dashboard_server()
+    #scfg = service.get_server_info(server_url, abort_if_exception = False)
 
     #forcing to read from local config file 
     # TESTING CODE to force reading from file
@@ -567,20 +576,20 @@ def reading_server_config():
             if service_name == 'aforo':
                 scfg = validate_aforo_values(scfg, srv_camera_service_id, service_name)
                 set_reference_line_and_area_of_interest(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
-                service.set_aforo_url()
+                set_aforo_url(server_url)
                 set_initial_last_disappeared(srv_camera_service_id)
                 source = scfg[srv_camera_service_id][service_name]['source']
                 activate_service = True
             elif service_name == 'video-socialDistancing':
                 scfg = validate_socialdist_values(scfg[srv_camera_service_id][service_name])
                 set_social_distance(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
-                service.set_social_distance_url()
+                service.set_social_distance_url(server_url)
                 source = scfg[srv_camera_service_id][service_name]['source']
                 activate_service = True
             elif service_name == 'people_counting':
                 scfg = validate_people_counting_values(scfg[srv_camera_service_id][service_name])
                 set_people_counting(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
-                service.set_service_people_counting_url()
+                service.set_service_people_counting_url(server_url)
                 source = scfg[srv_camera_service_id][service_name]['source']
                 activate_service = True
             else:
@@ -771,21 +780,21 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                     if aforo_info['area_of_interest']['type'] == 'fixed':
                         entrada, salida = get_entrada_salida(camera_id)
                         initial, last = get_initial_last(camera_id)
-                        entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, rectangle=rectangle)
+                        entrada, salida = service.aforo(aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, rectangle=rectangle)
                         set_entrada_salida(camera_id, entrada, salida)
                     else: 
                         #x > TopLeftx and x < (TopLeftx + Width) and y < (TopLefty + Height) and y > TopLefty:
                         #polygon_sides, polygon = get_reference_line(camera_id)
                         entrada, salida = get_entrada_salida(camera_id)
                         initial, last = get_initial_last(camera_id)
-                        entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1], rectangle)
+                        entrada, salida = service.aforo(aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1], rectangle)
                         #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
                         set_entrada_salida(camera_id, entrada, salida)
                         #print("x=",x,"y=",y,'frame',frame_number,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
                 else:
                     entrada, salida = get_entrada_salida(camera_id)
                     initial, last = get_initial_last(camera_id)
-                    entrada, salida = service.aforo((x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1])
+                    entrada, salida = service.aforo(aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1])
                     #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
                     set_entrada_salida(camera_id, entrada, salida)
                     #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
@@ -908,6 +917,7 @@ def create_source_bin(index, uri):
 def main():
     # Check input arguments
     # Lee y carga la configuracion, ya sea desde el servidor o desde un arvhivo de texto
+    set_dashboard_server()
     reading_server_config()    
 
     number_sources = len(get_sources()) 
