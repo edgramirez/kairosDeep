@@ -17,21 +17,17 @@ from random import seed, randint
 from datetime import datetime
 
 
+SOURCE_PATTERNS = ('file:///', 'rtsp://')
 
 global first_time_set
 global last_time_set
-global header
 global server_url
 global sd_keys
 global nfps
 global people_counting_enabled
 global aforo_enabled
 global social_distance_enabled
-global social_distance_url
-global people_counting_url
 global plate_detection_url
-
-header = None
 
 first_time_set = set()
 last_time_set = set()
@@ -107,22 +103,6 @@ def get_timestamp():
     return int(time.time() * 1000)
 
 
-def set_header(token_file = None):
-    if token_file is None:
-        token_file = '.token'
-
-    global header
-
-    if header is None:
-        if isinstance(token_file, str):
-            token_handler = open_file(token_file, 'r+')
-            if token_handler:
-                header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
-                print('Header correctly set')
-                return True
-
-    return False
-
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
@@ -144,19 +124,38 @@ def get_machine_macaddresses():
             return macaddress_list
 
 
-def get_server_info(server_url, abort_if_exception = True, _quit = True):
+def get_config_filtered_by_local_mac(config_data):
+    '''
+    By now we only support one nano server and one interface
+    but it can be a big server with multiple interfaces so I
+    leave the logic with to handle this option
+    '''
+    services_data = {}
+    for key in config_data.keys():
+        if mac_address_in_config(key):
+            services_data[key] = config_data[key]
+    if services_data:
+        return services_data
+
+    log_error("The provided configuration does not match any of server interfaces mac address")
+
+
+def get_server_info(header, server_url, abort_if_exception = True, _quit = True):
     url = server_url + 'tx/device.getConfigByProcessDevice'
 
     for machine_id in get_machine_macaddresses():
         # HARDCODED MACHINE ID
+        #machine_id = 'AAEON-DESKTOP_2-00:04:4b:eb:f6:dd'
+        #machine_id = '98:18:88:ba:bf:14'
         #machine_id = '00:04:4b:eb:f6:dd'
+        #machine_id = '9c:7b:ef:2a:b6:07'
         data = {"id": machine_id}
         
         if abort_if_exception:
-            response = send_json(data, 'POST', url)
+            response = send_json(header, data, 'POST', url)
         else:
             options = {'abort_if_exception': False}
-            response = send_json(data, 'POST', url, **options)
+            response = send_json(header, data, 'POST', url, **options)
     if response:
         return json.loads(response.text)
     else:
@@ -174,49 +173,31 @@ def get_server_info_from_local_file(filename, _quit = True):
         return log_error("Unable to read the device configuration from local file: {}".format(filename), _quit)
 
 
-def parse_parameters_and_values_from_config(config_data):
-    # filter config and get only data for this server using the mac to match
-    config_data = get_config_filtered_by_local_mac(config_data)
-
-    # filter config and get only data of active services
-    return get_config_filtered_by_active_service(config_data)
-
-
-def get_config_filtered_by_local_mac(config_data):
-    '''
-    By now we only support one nano server and one interface
-    but it can be a big server with multiple interfaces so I
-    leave the logic with to handle this option
-    '''
-    services_data = {}
-    for key in config_data.keys():
-        if mac_address_in_config(key):
-            services_data[key] = config_data[key]
-    if services_data:
-        return services_data
-
-    log_error("The provided configuration does not match any of server interfaces mac address")
-
-
 def get_config_filtered_by_active_service(config_data):
     if not isinstance(config_data, dict):
         log_error("Configuration error - Config data must be a dictionary - type: {} / content: {}".format(type(config_data), config_data))
     active_services = {}
 
-    # at this point there should be only one server mac but we still loop in case we have many multiple network interfaces 
-    for server_mac in config_data.keys():
-        #  we loop over all the different cameras attach to this server
-        for camera_mac in config_data[server_mac]:
-            # we loop over all the services assigned to the camera
-            for service in config_data[server_mac][camera_mac]:
-                # if the service is enable we add it to the active services
-                if 'enabled' in config_data[server_mac][camera_mac][service] and config_data[server_mac][camera_mac][service]['enabled'] is True:
-                    if 'source' not in config_data[server_mac][camera_mac][service]:
-                        log_error("Service {} must have a source (video or live streaming)".format(service))
+    # removing unnecesary parameter from config
+    if "OK" in config_data.keys():
+        config_data.pop("OK")
 
+    for camera_mac in config_data.keys():
+        for service in config_data[camera_mac]:
+            if 'enabled' in config_data[camera_mac][service]:
+                if str(config_data[camera_mac][service]['enabled']).lower() == 'true':
+                    config_data[camera_mac][service]['enabled'] = True
+                else:
+                    config_data[camera_mac][service]['enabled'] = False
+
+                if config_data[camera_mac][service]['enabled'] and 'source' in config_data[camera_mac][service]:
                     # Create new key only for each of the active services
-                    new_key_name = 'srv_' + server_mac + "_camera_" + camera_mac + '_' + service
-                    active_services[new_key_name] = {service: config_data[server_mac][camera_mac][service]}
+
+                    if SOURCE_PATTERNS[0] in config_data[camera_mac][service]['source'][0:8] and file_exists(config_data[camera_mac][service]['source'][7:]) is False:
+                        log_error("Source file {} does not exist".format(config_data[camera_mac][service]['source']))
+
+                    new_key_name = "camera_" + camera_mac + '_' + service
+                    active_services[new_key_name] = {service: config_data[camera_mac][service]}
 
     if len(active_services) < 1:
         com.log_error("\nConfiguration does not contain any active service for this server: \n\n{}".format(config_data))
@@ -231,12 +212,10 @@ def mac_address_in_config(mac_config):
     return False
 
 
-def send_json(payload, action, url = None, **options):
-    set_header()
-    global header
+def send_json(header, payload, action, url = None, **options):
 
     if action not in get_supported_actions() or url is None:
-        raise Exception('Requested action: ({}) not supported. valid options are:'.format(action, get_supported_actions()))
+        raise Exception('Requested action: ({}) not supported. valid options are: {}'.format(action, get_supported_actions()))
 
     retries = options.get('retries', 2)
     sleep_time = options.get('sleep_time', 1)
@@ -312,7 +291,7 @@ def check_if_object_is_in_area2(object_coordinates, reference_line, m, b):
             return False
 
 
-def is_point_insde_polygon(x, y, polygon_length, polygon):
+def is_point_inside_polygon(x, y, polygon_length, polygon):
 
     p1x,p1y = polygon[0]
     for i in range(polygon_length+1):
@@ -333,17 +312,10 @@ def is_point_insde_polygon(x, y, polygon_length, polygon):
 
 ##### PEOPLE COUNTING
 
-def set_service_people_counting_url(server_url):
-    global people_counting_url
-    people_counting_url = server_url + 'SERVICE_NOT_DEFINED_'
-
-
-def people_counting(camera_id, total_objects):
+def people_counting(people_counting_url, camera_id, total_objects):
     '''
     Sending only the total of detected objects
     '''
-    global people_counting_url
-    
     date = get_timestamp()
     alert_id = str(date) + '_' + str(camera_id) + '_' + str(date)
     data = {
@@ -359,12 +331,7 @@ def people_counting(camera_id, total_objects):
 
 ##### AFORO
 
-#def set_aforo_url():
-#    global aforo_url, srv_url
-#aforo_url = srv_url + 'tx/video-people.endpoint'
-
-
-def aforo(aforo_url, box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
+def aforo(header, aforo_url, box, object_id, ids, camera_id, initial, last, entradas, salidas, outside_area=None, reference_line=None, m=None, b=None, rectangle=None):
     '''
     A1 is the closest to the origin (0,0) and A2 is the area after the reference line
     A1 is by default the outside
@@ -380,20 +347,15 @@ def aforo(aforo_url, box, object_id, ids, camera_id, initial, last, entradas, sa
     if rectangle:
         # si el punto esta afuera del area de interes no evaluamos
         if box[0] < rectangle[0] or box[0] > rectangle[4] or box[1] > rectangle[5] and box[1] < rectangle[1]:
-            if reference_line:
-                return entradas, salidas
-            else:
-                outside_area = 1
-                area = 1
+            # reference_line is now an obigatory field and so no need to check
+            return entradas, salidas
 
-    if reference_line:
-        if check_if_object_is_in_area2(box, reference_line, m, b):
-            area = 2
-        else:
-            area = 1
-    else:
-        outside_area = 1
+    # reference_line is now an obigatory field and so no need to check
+    #if reference_line:
+    if check_if_object_is_in_area2(box, reference_line, m, b):
         area = 2
+    else:
+        area = 1
 
     if outside_area == 1:
         direction_1_to_2 = 1
@@ -428,7 +390,7 @@ def aforo(aforo_url, box, object_id, ids, camera_id, initial, last, entradas, sa
             initial.update({item: 2})
 
             print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",time_in_epoc)
-            x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
+            x = threading.Thread(target=send_json, args=(header, data, 'PUT', aforo_url,))
             x.start()
 
             if direction_1_to_2 == 1:
@@ -449,7 +411,7 @@ def aforo(aforo_url, box, object_id, ids, camera_id, initial, last, entradas, sa
             initial.update({item: 1})
 
             print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",time_in_epoc)
-            x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
+            x = threading.Thread(target=send_json, args=(header, data, 'PUT', aforo_url,))
             x.start()
 
             if direction_2_to_1 == 1:
@@ -462,12 +424,8 @@ def aforo(aforo_url, box, object_id, ids, camera_id, initial, last, entradas, sa
 
 ##### SOCIAL DISTANCE
 
-def set_social_distance_url(server_url):
-    global social_distance_url
-    social_distance_url = srv_url + 'tx/video-socialDistancing.endpoint'
 
-
-def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids):
+def social_distance2(social_distance_url, camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids):
     '''
     social distance is perform in pairs of not repeated pairs
     Being (A, B, C, D, E, F) the set of detected objects
@@ -586,19 +544,19 @@ def social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_t
                                     '#date': current_time,
                                     }
                                 print('Social distance', data, social_distance_url, 'PUT', 'distance=', sqrt((dx*dx) + (dy*dy)), 'tolerada:', tolerated_distance)
-                                x = threading.Thread(target=send_json, args=(data, 'PUT', social_distance_url,))
+                                x = threading.Thread(target=send_json, args=(header, data, 'PUT', social_distance_url,))
                                 x.start()
             i += 1
 
 
 #### MASK DETECTION
 
-def set_mask_detection_url(server_url):
-    global mask_detection_url
-    mask_detection_url = server_url + 'tx/video-maskDetection.endpoint'
+#def set_mask_detection_url(server_url):
+#    global mask_detection_url
+#    mask_detection_url = server_url + 'tx/video-maskDetection.endpoint'
 
 
-def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
+def mask_detection(header, mask_detection_url, mask_id, no_mask_ids, camera_id, reported_class = 0):
     time_in_epoc = get_timestamp()
     data_id = str(time_in_epoc) + '_' + str(mask_id)
     data = {
@@ -610,7 +568,7 @@ def mask_detection(mask_id, no_mask_ids, camera_id, reported_class = 0):
         }
 
     print('Mask detection', data, mask_detection_url, 'PUT')
-    x = threading.Thread(target=send_json, args=(data, 'PUT', mask_detection_url,))
+    x = threading.Thread(target=send_json, args=(header, data, 'PUT', mask_detection_url,))
     x.start()
 
 
