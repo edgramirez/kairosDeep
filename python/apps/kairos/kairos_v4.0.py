@@ -98,13 +98,14 @@ fps_streams = {}
 
 global DASHBOARD_SERVER
 global aforo_url
-
+global people_counting_url
+global social_distance_url
+global header
 
 global aforo_list
 global social_distance_list
 global people_distance_list
 global people_counting_counters
-global camera_list
 global token_file
 global entradas_salidas
 global initial_last_disappeared
@@ -117,13 +118,14 @@ initial_last_disappeared = {}
 aforo_list = {}
 people_distance_list = {}
 people_counting_counters = {}
-camera_list = []
 social_distance_list = {}
 entradas_salidas = {}
 social_distance_ids = {}
 scfg = {}
 sources = {}
 call_ordered_sources = []
+
+header = None
 
 
 def set_dashboard_server():
@@ -272,13 +274,6 @@ def get_sources():
     return sources
 
 
-def set_camera(value):
-    global camera_list
-
-    if value not in camera_list and value:
-        camera_list.append(value)
-
-
 def get_camera_id(index):
     global call_ordered_sources
     return call_ordered_sources[index]
@@ -306,7 +301,6 @@ def validate_keys(service, data, list_of_keys):
 
     if not isinstance(data, dict):
         service.log_error("'data' parameter, most be a dictionary")
-    print('print2', data)
     if 'enabled' not in data:
         return False
 
@@ -404,7 +398,7 @@ def validate_aforo_values(data, srv_id, service_name):
 
 def validate_socialdist_values(data):
 
-    print('print1', data, '...', ['enabled', 'tolerated_distance', 'persistence_time'])
+    #print('print1', data, '...', ['enabled', 'tolerated_distance', 'persistence_time'])
     if not validate_keys('video-socialDistancing', data, ['enabled', 'tolerated_distance', 'persistence_time']):
         return False
 
@@ -558,50 +552,70 @@ def get_aforo_url():
     return afor_url
 
 
-def reading_server_config():
+def set_service_people_counting_url(server_url):
+    global people_counting_url
+    people_counting_url = server_url + 'SERVICE_NOT_DEFINED_'
+    return people_counting_url
+
+
+def get_service_people_counting_url():
+    global people_counting_url
+    return people_counting_url
+
+
+def set_social_distance_url(server_url):
+    global social_distance_url
+    social_distance_url = server_url + 'tx/video-socialDistancing.endpoint'
+    return social_distance_url
+
+
+def get_social_distance_url():
+    global social_distance_url
+    return social_distance_url
+
+
+def reading_server_config(header):
     global scfg
     # USANDO CONFIGURACION LOCAL PARA PRUEBAS - SIN SERVIDOR DE DASHBOARD
     server_url = get_dashboard_server()
-    #scfg = service.get_server_info(server_url, abort_if_exception = False)
+    scfg = service.get_server_info(header, server_url, abort_if_exception = False)
 
     #forcing to read from local config file 
     # TESTING CODE to force reading from file
+    scfg = False
     if not scfg:
         scfg = service.get_server_info_from_local_file("configs/Server_Emulation_configs_to_kairos.py")
 
-    scfg = service.parse_parameters_and_values_from_config(scfg)
+    scfg = service.get_config_filtered_by_active_service(scfg)
 
-    if "OK" in scfg.keys():
-        scfg.pop("OK")
-
-    for srv_camera_service_id in scfg.keys():
-        for service_name in scfg[srv_camera_service_id]:
-
-            if service_name == 'aforo':
-                scfg = validate_aforo_values(scfg, srv_camera_service_id, service_name)
-                set_reference_line_and_area_of_interest(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
+    for camera_id in scfg.keys():
+        for service_name in scfg[camera_id]:
+            if service_name == 'video-people':
+                scfg = validate_aforo_values(scfg, camera_id, service_name)
+                set_reference_line_and_area_of_interest(camera_id, scfg[camera_id][service_name])
                 set_aforo_url(server_url)
-                set_initial_last_disappeared(srv_camera_service_id)
-                source = scfg[srv_camera_service_id][service_name]['source']
-                set_sources(srv_camera_service_id, source)
+                set_initial_last_disappeared(camera_id)
+                source = scfg[camera_id][service_name]['source']
+                set_sources(camera_id, source)
                 activate_service = True
             elif service_name == 'video-socialDistancing':
-                scfg = validate_socialdist_values(scfg[srv_camera_service_id][service_name])
-                set_social_distance(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
-                service.set_social_distance_url(server_url)
-                source = scfg[srv_camera_service_id][service_name]['source']
+                scfg = validate_socialdist_values(scfg[camera_id][service_name])
+                set_social_distance(camera_id, scfg[camera_id][service_name])
+                set_social_distance_url(server_url)
+                source = scfg[camera_id][service_name]['source']
                 activate_service = True
             elif service_name == 'people_counting':
-                scfg = validate_people_counting_values(scfg[srv_camera_service_id][service_name])
-                set_people_counting(srv_camera_service_id, scfg[srv_camera_service_id][service_name])
-                service.set_service_people_counting_url(server_url)
-                source = scfg[srv_camera_service_id][service_name]['source']
+                scfg = validate_people_counting_values(scfg[camera_id][service_name])
+                set_people_counting(camera_id, scfg[camera_id][service_name])
+                set_service_people_counting_url(server_url)
+                source = scfg[camera_id][service_name]['source']
                 activate_service = True
             else:
                 continue
 
-        if activate_service:
-            set_camera(srv_camera_service_id)
+    '''
+        #    set_camera(srv_camera_service_id)
+    '''
 
     return True
 
@@ -609,6 +623,8 @@ def reading_server_config():
 def tiler_src_pad_buffer_probe(pad, info, u_data):
     # Intiallizing object counter with 0.
     # version 2.1 solo personas
+    global header
+
     obj_counter = {
             PGIE_CLASS_ID_PERSON: 0
             }
@@ -779,26 +795,26 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
                 boxes.append((x, y))
 
                 if aforo_info['area_of_interest']['values']:
-                    #aa = service.is_point_insde_polygon(x, y, polygon_sides, polygon)
+                    #aa = service.is_point_inside_polygon(x, y, polygon_sides, polygon)
                     #if aforo_info['area_of_interest']['type'] == 'fixed' and x > TopLeftx and x < (TopLeftx + Width) and y < (TopLefty + Height) and y > TopLefty:
                     if aforo_info['area_of_interest']['type'] == 'fixed':
                         entrada, salida = get_entrada_salida(camera_id)
                         initial, last = get_initial_last(camera_id)
-                        entrada, salida = service.aforo(aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, rectangle=rectangle)
+                        entrada, salida = service.aforo(header, aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, rectangle=rectangle)
                         set_entrada_salida(camera_id, entrada, salida)
                     else: 
                         #x > TopLeftx and x < (TopLeftx + Width) and y < (TopLefty + Height) and y > TopLefty:
                         #polygon_sides, polygon = get_reference_line(camera_id)
                         entrada, salida = get_entrada_salida(camera_id)
                         initial, last = get_initial_last(camera_id)
-                        entrada, salida = service.aforo(aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1], rectangle)
+                        entrada, salida = service.aforo(header, aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1], rectangle)
                         #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
                         set_entrada_salida(camera_id, entrada, salida)
                         #print("x=",x,"y=",y,'frame',frame_number,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
                 else:
                     entrada, salida = get_entrada_salida(camera_id)
                     initial, last = get_initial_last(camera_id)
-                    entrada, salida = service.aforo(aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1])
+                    entrada, salida = service.aforo(header, aforo_url, (x, y), obj_meta.object_id, ids, camera_id, initial, last, entrada, salida, outside_area, reference_line, aforo_info['line_m_b'][0], aforo_info['line_m_b'][1])
                     #print('despues de evaluar: index, entrada, salida', current_pad_index, entrada, salida)
                     set_entrada_salida(camera_id, entrada, salida)
                     #print("x=",x,"y=",y,"ID=",obj_meta.object_id,"Entrada=",entrada,"Salida=",salida)
@@ -834,7 +850,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         if is_social_distance_enabled:
             if len(ids_and_boxes) > 1: # if only 1 object is present there is no need to calculate the distance
-                service.social_distance2(camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
+                service.social_distance2(get_social_distance_url(), camera_id, ids_and_boxes, tolerated_distance, persistence_time, max_side_plus_side, detected_ids)
             py_nvosd_text_params.display_text = "SOCIAL DISTANCE Source ID={} Source Number={} Person_count={} ".format(frame_meta.source_id, frame_meta.pad_index , obj_counter[PGIE_CLASS_ID_PERSON])
 
         if is_people_counting_enabled:
@@ -918,11 +934,27 @@ def create_source_bin(index, uri):
     return nbin
 
 
+def set_header(token_file = None):
+    if token_file is None:
+        token_file = '.token'
+
+    if isinstance(token_file, str):
+        token_handler = service.open_file(token_file, 'r+')
+        if token_handler:
+            header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
+            print('Header correctly set')
+            return header
+
+    return False
+
+
 def main():
     # Check input arguments
     # Lee y carga la configuracion, ya sea desde el servidor o desde un arvhivo de texto
     set_dashboard_server()
-    reading_server_config()    
+    global header
+    header = set_header()
+    reading_server_config(header)    
 
     sources = get_sources()
     number_sources = len(sources)
