@@ -1,24 +1,10 @@
 {
-    "88:88:88:88:88:88":
-    {
-        "camara_sin_servicio11": {},
-        "camara_sin_servicio22": {},      
-        "camara_sin_servicio33": {}
-    },
-    "99:99:99:99:99:99":
-    {
-        "camara_sin_servicios1": {},
-        "camara_sin_servicios2": {},      
-        "camara_sin_servicios3": {}
-    },
-    "9c:7b:ef:2a:b6:07":
-    {
         "camera_mac_1": 
         {
-	        "aforo": 
+	        "video-people": 
 	        {
 	            "enabled": true,
-                    "source": "file:///home/mit-mexico/amlo.mp4",
+                    "source": "file:///home/mit-mexico/shopping_mall.mkv",
 	            "reference_line": 
 	            {
 	                "coordinates": ["(470, 340)", "(1200, 340)"],
@@ -44,7 +30,7 @@
         },
         "camera_mac_2":
         {
-	        "aforo": 
+	        "video-people": 
 	        {
 	            "enabled": true,
                     "source": "file:///home/mit-mexico/amlo.mp4",
@@ -71,5 +57,4 @@
 	            "persistence_time": 1
 	        }
         }
-    }
 }
