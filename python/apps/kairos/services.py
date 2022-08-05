@@ -117,7 +117,8 @@ def set_header(token_file = None):
         if isinstance(token_file, str):
             token_handler = open_file(token_file, 'r+')
             if token_handler:
-                header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
+                #header = {'Content-type': 'application/json', 'X-KAIROS-TOKEN': token_handler.read().split('\n')[0]}
+                header = {'Content-type': 'application/json'}
                 print('Header correctly set')
                 return True
 
@@ -178,9 +179,11 @@ def send_json(payload, action, url = None, **options):
     set_header()
     global header
 
+    print('aqui1')
     if action not in get_supported_actions() or url is None:
         raise Exception('Requested action: ({}) not supported. valid options are:'.format(action, get_supported_actions()))
 
+    print('aqui2')
     retries = options.get('retries', 2)
     sleep_time = options.get('sleep_time', 1)
     expected_response = options.get('expected_response', 200)
@@ -188,14 +191,17 @@ def send_json(payload, action, url = None, **options):
 
     data = json.dumps(payload)
 
+    print('aqui3')
     # emilio comenta esto para insertar en MongoDB
     # return True
 
     for retry in range(retries):
+        print('aquir4')
         try:
             if action == 'GET':
                 r = requests.get(url, data=data, headers=header)
             elif action == 'POST':
+                print("url: {}\n data={}\n headers={}\n".format(url, data, header))
                 r = requests.post(url, data=data, headers=header)
             elif action == 'PUT':
                 r = requests.put(url, data=data, headers=header)
@@ -205,7 +211,7 @@ def send_json(payload, action, url = None, **options):
         except requests.exceptions.ConnectionError as e:
             time.sleep(sleep_time)
             if retry == retries - 1 and abort_if_exception:
-                raise Exception("Unable to Connect to the server after {} retries\n. Original exception: {}".format(retry, str(e)))
+                raise Exception("Unable to Connect to server:"+url+" after "+retry+" retries. Original exception: "+e)
         except requests.exceptions.HTTPError as e:
             time.sleep(sleep_time)
             if retry == retries - 1 and abort_if_exception:
@@ -357,22 +363,30 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
     if initial[object_id] == last[object_id]:
         return entradas, salidas
 
+    aforo_url = 'http://3.219.81.19:8888/posts'
     for item in last.keys():
         if initial[item] == 1 and last[item] == 2:
             time_in_epoc = get_timestamp()
-            data_id = str(time_in_epoc) + '_' + str(object_id)
+            data_id = str(object_id)+'_'+str(time_in_epoc)
+            #data = {
+            #        'id': data_id,
+            #        'direction': direction_1_to_2,
+            #        'camera-id': camera_id,
+            #        '#date-start': time_in_epoc,
+            #        '#date-end': time_in_epoc,
+            #    }
             data = {
-                    'id': data_id,
+                    'deepStreamId': data_id,
                     'direction': direction_1_to_2,
-                    'camera-id': camera_id,
-                    '#date-start': time_in_epoc,
-                    '#date-end': time_in_epoc,
+                    'cameraId': camera_id,
                 }
             initial.update({item: 2})
 
+            # IN BACKGROUND
+            #x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
+            #x.start()
             print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_1_to_2, "tiempo =",time_in_epoc)
-            x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
-            x.start()
+            send_json(data, 'POST', aforo_url)
 
             if direction_1_to_2 == 1:
                 entradas += 1
@@ -382,18 +396,25 @@ def aforo(box, object_id, ids, camera_id, initial, last, entradas, salidas, outs
         elif initial[item] == 2 and last[item] == 1:
             time_in_epoc = get_timestamp()
             data_id = str(time_in_epoc) + '_' + str(object_id)
+            #data = {
+            #        'id': data_id,
+            #        'direction': direction_2_to_1,
+            #        'camera-id': camera_id,
+            #        '#date-start': time_in_epoc,
+            #        '#date-end': time_in_epoc,
+            #    }
             data = {
-                    'id': data_id,
+                    'deepStreamId': data_id,
                     'direction': direction_2_to_1,
-                    'camera-id': camera_id,
-                    '#date-start': time_in_epoc,
-                    '#date-end': time_in_epoc,
+                    'cameraId': camera_id,
                 }
             initial.update({item: 1})
 
+            # IN BACKGROUND
+            #x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
+            #x.start()
             print('Sending Json of camera_id: ', camera_id, 'ID: ',item, 'Sal:0,Ent:1 = ', direction_2_to_1, "tiempo =",time_in_epoc)
-            x = threading.Thread(target=send_json, args=(data, 'PUT', aforo_url,))
-            x.start()
+            send_json(data, 'POST', aforo_url)
 
             if direction_2_to_1 == 1:
                 entradas += 1
