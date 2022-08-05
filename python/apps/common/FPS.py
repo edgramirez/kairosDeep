@@ -23,6 +23,9 @@
 import time
 start_time=time.time()
 frame_count=0
+frame_count_var=0
+global fps_dir
+fps_dir = {}
 
 class GETFPS:
     def __init__(self,stream_id):
@@ -32,7 +35,10 @@ class GETFPS:
         global frame_count
         self.frame_count=frame_count
         self.stream_id=stream_id
+        global frame_count_var
+        self.frame_count_var=frame_count_var
     def get_fps(self):
+        global fps_dir
         end_time=time.time()
         if(self.is_first):
             self.start_time=end_time
@@ -40,11 +46,16 @@ class GETFPS:
         if(end_time-self.start_time>5):
             print("**********************FPS*****************************************")
             print("Fps of stream",self.stream_id,"is ", float(self.frame_count)/5.0)
+            fps = float(self.frame_count)/5.0
+            self.frame_count_var=self.frame_count
             self.frame_count=0
             self.start_time=end_time
+            return fps
         else:
             self.frame_count=self.frame_count+1
+            return self.frame_count
     def print_data(self):
+        print('frame_count_var=',self.frame_count_var)
         print('frame_count=',self.frame_count)
         print('start_time=',self.start_time)
 
