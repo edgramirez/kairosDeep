@@ -544,13 +544,13 @@ def set_reference_line_and_area_of_interest(camera_id, data):
 
 
 def reading_server_config():
-    scfg = service.get_server_info(abort_if_exception = False)
+    #scfg = service.get_server_info(abort_if_exception = False)
 
-    if "OK" in scfg.keys():
-        scfg.pop("OK")
+    #if "OK" in scfg.keys():
+    #    scfg.pop("OK")
 
-    if not scfg:
-        scfg = service.get_server_info_from_local_file("configs/Server_Emulatation_configs_from_Excel.py")
+    #if not scfg:
+    scfg = service.get_server_info_from_local_file("configs/Server_Emulatation_configs_from_Excel.py")
 
     for camera in scfg.keys():
         activate_service = False
