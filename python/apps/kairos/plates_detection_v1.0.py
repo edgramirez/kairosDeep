@@ -57,8 +57,9 @@ import services as service
 import datetime
 
 
-import boto3
-from PIL import Image, ImageDraw, ExifTags, ImageColor
+#import boto3
+#
+#from PIL import Image, ImageDraw, ExifTags, ImageColor
 
 
 
@@ -277,7 +278,7 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
     # por que ponerlo en 1 ????
     #frame_number = 1 # to avoid not definition issue
 
-    client=boto3.client('rekognition')
+    #client=boto3.client('rekognition')
 
     while l_frame is not None:
         try:
@@ -286,15 +287,18 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             break
         #print( "primer ciclo") 
         frame_number = frame_meta.frame_num
-        #print(" fps:",frame_meta.num_surface_per_frame)
+        
         l_obj = frame_meta.obj_meta_list
         num_rects = frame_meta.num_obj_meta
+        
         is_first_obj = True
         save_image = False
 
         #print(num_rects) ID numero de stream
-        ids = set()
-
+        #ids = set()
+  
+        #fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()
+        
         # Ciclo interno donde se evaluan los objetos dentro del frame
         while l_obj is not None: 
             try:
@@ -303,32 +307,23 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
             except StopIteration:
                 break           
             
-
             obj_counter[obj_meta.class_id] += 1
-            #print(obj_meta.confidence,"   ",obj_meta.object_id)
-            #print(obj_counter[obj_meta.class_id],"   ",obj_counter[obj_meta.class_id]%5)
-            # and (obj_meta.confidence > 0.9 )
-            print(frame_number) 
-            if (( obj_meta.class_id == 1 ) and ( frame_number%8 == 0 )):
+            
+            if obj_meta.class_id == 1 and frame_number % 8 == 0:
                 if is_first_obj:
                     is_first_obj = False
                     # Getting Image data using nvbufsurface
                     # the input should be address of buffer and batch_id
                     n_frame=pyds.get_nvds_buf_surface(hash(gst_buffer),frame_meta.batch_id)
                     #convert python array into numy array format.
-                    frame_image=np.array(n_frame,copy=True,order='C')
+                    frame_image = np.array(n_frame,copy=True,order='C')
                     #covert the array into cv2 default color format
-                    frame_image=cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
+                    frame_image = cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
 
                 save_image = True
-                frame_image=draw_bounding_boxes(frame_image,obj_meta,obj_meta.confidence)
+                frame_image = draw_bounding_boxes(frame_image,obj_meta,obj_meta.confidence)
 
                  
-                response = client.detect_labels(Image={'Bytes': frame_image})
-                print('Detected labels in ')    
-                for label in response['Labels']:
-                   print (label['Name'] + ' : ' + str(label['Confidence']))
-
             #py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Mask={} NoMaks={}".format(frame_number, num_rects, obj_counter[PGIE_CLASS_ID_FACE], obj_counter[PGIE_CLASS_ID_PLATES])
 
             try: 
@@ -339,14 +334,22 @@ def tiler_src_pad_buffer_probe(pad, info, u_data):
 
         #pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
 
-        fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()  
-        #print(save_image)
-        #print(folder_name)
+        fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()
+        #fps_streams["stream{0}".format(frame_meta.pad_index)].print_data()
+        #print("stream{0}".format(frame_meta.pad_index))
+
         if save_image:
-            print("Entre a guardar imagen")
-            print(obj_meta.class_id)
-             
-            cv2.imwrite(folder_name+"/stream_"+str(frame_meta.pad_index)+"/frame_"+str(frame_number)+".jpg",frame_image)
+            #print("Entre a guardar imagen")
+            #print(obj_meta.class_id)
+            
+            # El nombre del archivo debe estar formado por date+id
+ 
+            #cv2.imwrite(folder_name+"/stream_"+str(frame_meta.pad_index)+"/frame_"+str(frame_number)+".jpg",frame_image)
+            #print(str(service.get_timestamp()))
+            #print(str(service.get_timestamp()/1000))
+            a = 1
+            cv2.imwrite(folder_name+"/stream_"+str(frame_meta.pad_index)+"/"+str(service.get_timestamp())+"_"+str(obj_meta.object_id)+".jpg",frame_image)
+
         saved_count["stream_"+str(frame_meta.pad_index)]+=1
       
         try:
@@ -479,6 +482,8 @@ def main():
 
     for i in range(0, number_sources):
         fps_streams["stream{0}".format(i)] = GETFPS(i)
+        #print(fps_streams["stream{0}".format(i)])
+ 
     
     global folder_name
     #folder_name=args[-1]
